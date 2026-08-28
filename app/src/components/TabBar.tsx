@@ -1,10 +1,62 @@
 export type Tab = 'today' | 'insights' | 'graphs' | 'settings'
 
-const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'today', label: 'Today', icon: 'M12 3.5c4.8 0 8.5 3.9 8.5 8.5s-3.7 8.5-8.5 8.5S3.5 16.7 3.5 12 7.2 3.5 12 3.5Zm0 3.2c-2.8 1.2-4.2 3-4.2 5.3s1.4 4.1 4.2 5.3c2.8-1.2 4.2-3 4.2-5.3S14.8 7.9 12 6.7Z' },
-  { id: 'insights', label: 'Insights', icon: 'M5 5.5c2.6-.5 4.9.1 7 1.8 2.1-1.7 4.4-2.3 7-1.8v13c-2.6-.5-4.9.1-7 1.8-2.1-1.7-4.4-2.3-7-1.8v-13ZM12 7.3v13' },
-  { id: 'graphs', label: 'Trends', icon: 'M4 19.5V14m5.3 5.5V8.7m5.4 10.8V11m5.3 8.5V5M3 19.5h18' },
-  { id: 'settings', label: 'Settings', icon: 'M4 7h9m4 0h3M4 17h3m4 0h9M13 4v6M7 14v6' },
+interface TabDef {
+  id: Tab
+  label: string
+  icon: (active: boolean) => JSX.Element
+  badge?: string
+}
+
+const TABS: TabDef[] = [
+  {
+    id: 'today',
+    label: 'Today',
+    icon: (active) => (
+      <svg viewBox="0 0 24 24" fill={active ? 'var(--hk-red)' : 'none'} stroke="currentColor" strokeWidth={active ? '2' : '2.2'} strokeLinecap="round" strokeLinejoin="round">
+        {/* Cute Bow / Heart Calendar */}
+        <rect x="3" y="4" width="18" height="17" rx="4" fill={active ? 'var(--rose-100)' : 'none'} />
+        <path d="M16 2v4M8 2v4M3 10h18" stroke={active ? 'var(--hk-red)' : 'currentColor'} />
+        <path d="M12 14.5c-.8-.8-2-.8-2.5 0-.6.8-.4 2 .5 2.5l2 1.5 2-1.5c.9-.5 1.1-1.7.5-2.5-.5-.8-1.7-.8-2.5 0z" fill={active ? 'var(--hk-red)' : 'currentColor'} stroke="none" />
+      </svg>
+    ),
+  },
+  {
+    id: 'insights',
+    label: 'Insights',
+    icon: (active) => (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? '2.4' : '2.2'} strokeLinecap="round" strokeLinejoin="round">
+        {/* Cute Sparkle & Star Book */}
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" fill={active ? 'var(--rose-100)' : 'none'} />
+        <path d="M12 6.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8.8-1.7z" fill={active ? 'var(--yellow-500)' : 'currentColor'} stroke="none" />
+      </svg>
+    ),
+  },
+  {
+    id: 'graphs',
+    label: 'Trends',
+    icon: (active) => (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? '2.4' : '2.2'} strokeLinecap="round" strokeLinejoin="round">
+        {/* Cute rounded bar chart with hearts */}
+        <path d="M18 20V10M12 20V4M6 20v-6" />
+        <circle cx="6" cy="14" r="2" fill={active ? 'var(--hk-red)' : 'none'} />
+        <circle cx="12" cy="4" r="2" fill={active ? 'var(--hk-red)' : 'none'} />
+        <circle cx="18" cy="10" r="2" fill={active ? 'var(--hk-red)' : 'none'} />
+      </svg>
+    ),
+  },
+  {
+    id: 'settings',
+    label: 'Settings',
+    icon: (active) => (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? '2.4' : '2.2'} strokeLinecap="round" strokeLinejoin="round">
+        {/* Cute Flower gear / sliders */}
+        <path d="M4 8h8M16 8h4M4 16h4M12 16h8" />
+        <circle cx="14" cy="8" r="2.5" fill={active ? 'var(--rose-100)' : 'none'} stroke={active ? 'var(--hk-red)' : 'currentColor'} />
+        <circle cx="10" cy="16" r="2.5" fill={active ? 'var(--rose-100)' : 'none'} stroke={active ? 'var(--hk-red)' : 'currentColor'} />
+      </svg>
+    ),
+  },
 ]
 
 export function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
@@ -33,9 +85,7 @@ export function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) =
               aria-current={selected ? 'page' : undefined}
             >
               <span className="tabbar-icon">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d={t.icon} />
-                </svg>
+                {t.icon(selected)}
               </span>
               <span className="tabbar-label">{t.label}</span>
             </button>

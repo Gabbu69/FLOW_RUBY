@@ -198,6 +198,42 @@ describe('assistant transport', () => {
     expect(body.instructions).toContain('"cycle":{"cycleDay":12}')
   })
 
+  it('sends a request to Google Gemini with approved context and key', async () => {
+    let capturedUrl: RequestInfo | URL | undefined
+    let capturedInit: RequestInit | undefined
+    const fetchMock = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      capturedUrl = url
+      capturedInit = init
+      return new Response(
+        JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'Gemini health explanation.' }],
+              },
+            },
+          ],
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      )
+    })
+
+    const result = await askAssistant(
+      { provider: 'gemini', apiKey: 'AIzaSyTestKey123', model: 'gemini-2.5-flash' },
+      history,
+      { cycle: { cycleDay: 12 } },
+      fetchMock,
+    )
+
+    expect(result).toBe('Gemini health explanation.')
+    expect(String(capturedUrl)).toContain('generativelanguage.googleapis.com')
+    expect(String(capturedUrl)).toContain('gemini-2.5-flash')
+    expect(String(capturedUrl)).toContain('key=AIzaSyTestKey123')
+    const body = JSON.parse(String(capturedInit?.body))
+    expect(body.systemInstruction.parts[0].text).toContain('"cycle":{"cycleDay":12}')
+    expect(body.contents[0].parts[0].text).toBe(history[0].content)
+  })
+
   it('never includes provider error bodies in user-facing errors', async () => {
     const fetchMock = vi.fn(async () =>
       new Response('server echoed test-key and sensitive tracker text', { status: 500 }),

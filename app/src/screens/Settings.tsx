@@ -138,6 +138,7 @@ export function Settings() {
   const [status, setStatus] = useState<string | null>(null)
   const [hasOpenAiKey, setHasOpenAiKey] = useState(false)
   const [hasAnthropicKey, setHasAnthropicKey] = useState(false)
+  const [hasGeminiKey, setHasGeminiKey] = useState(false)
   const [vaultLabel, setVaultLabel] = useState(isNative ? 'Checking…' : 'Session memory')
   const [biometrics, setBiometrics] = useState<BiometricStatus | null>(null)
   const [health, setHealth] = useState<HealthPlatformStatus | null>(null)
@@ -153,15 +154,17 @@ export function Settings() {
     void Promise.all([
       getSecureSecret(SECURE_SECRET_KEYS.openAiApiKey),
       getSecureSecret(SECURE_SECRET_KEYS.anthropicApiKey),
+      getSecureSecret(SECURE_SECRET_KEYS.geminiApiKey),
       secureVaultStatus(),
       getBiometricStatus(),
       getHealthPlatformStatus(),
       getWidgetStatus(),
     ])
-      .then(([openAiKey, anthropicKey, vault, biometricStatus, healthStatus, widgetStatus]) => {
+      .then(([openAiKey, anthropicKey, geminiKey, vault, biometricStatus, healthStatus, widgetStatus]) => {
         if (!alive) return
         setHasOpenAiKey(Boolean(openAiKey))
         setHasAnthropicKey(Boolean(anthropicKey))
+        setHasGeminiKey(Boolean(geminiKey))
         setVaultLabel(
           vault.persistence === 'memory'
             ? 'Session memory'
@@ -217,7 +220,7 @@ export function Settings() {
       pregnancyDating,
       hasPin: !!hasPin,
       biometricLock: biometricLock === '1',
-      provider: provider === 'openai' ? 'openai' : 'anthropic',
+      provider: provider === 'openai' ? 'openai' : provider === 'anthropic' ? 'anthropic' : 'gemini',
       endpoint: endpoint ?? '',
       recoveryCode: code ?? '',
       legacyReminderTime: time,
@@ -314,7 +317,7 @@ export function Settings() {
 
   async function exportPlain() {
     const payload = await collectExport()
-    await shareOrDownload(`lunara-backup-${localToday()}.json`, JSON.stringify(payload, null, 2))
+    await shareOrDownload(`ruby-backup-${localToday()}.json`, JSON.stringify(payload, null, 2))
     setStatus('Exported. Save it somewhere safe.')
   }
 
@@ -322,7 +325,7 @@ export function Settings() {
     const pass = prompt('Choose a passphrase to encrypt this file. You will need it to import.')
     if (!pass) return
     const env = await encryptedExport(pass)
-    await shareOrDownload(`lunara-encrypted-${localToday()}.json`, JSON.stringify(env))
+    await shareOrDownload(`ruby-encrypted-${localToday()}.json`, JSON.stringify(env))
     setStatus('Encrypted export saved.')
   }
 
@@ -381,7 +384,7 @@ export function Settings() {
     }
     setCapabilityBusy(true)
     try {
-      const result = await authenticateWithBiometrics('Confirm biometric unlock for Lunara')
+      const result = await authenticateWithBiometrics('Confirm biometric unlock for Ruby')
       if (!result.authenticated) {
         setStatus('Biometric confirmation was cancelled.')
         return
@@ -498,24 +501,29 @@ export function Settings() {
   }
 
   async function removeAiKey() {
-    const provider = s?.provider ?? 'anthropic'
+    const provider = s?.provider ?? 'gemini'
     await deleteSecureSecret(
-      provider === 'anthropic'
-        ? SECURE_SECRET_KEYS.anthropicApiKey
-        : SECURE_SECRET_KEYS.openAiApiKey,
+      provider === 'gemini'
+        ? SECURE_SECRET_KEYS.geminiApiKey
+        : provider === 'anthropic'
+          ? SECURE_SECRET_KEYS.anthropicApiKey
+          : SECURE_SECRET_KEYS.openAiApiKey,
     )
     await removeSetting(SK.aiKey)
-    if (provider === 'anthropic') setHasAnthropicKey(false)
+    if (provider === 'gemini') setHasGeminiKey(false)
+    else if (provider === 'anthropic') setHasAnthropicKey(false)
     else setHasOpenAiKey(false)
     setStatus(
-      provider === 'anthropic'
-        ? 'Anthropic credential removed from this device. Revoke it in the Anthropic console to invalidate it everywhere.'
-        : 'OpenAI key removed from secure storage.',
+      provider === 'gemini'
+        ? 'Google Gemini API key removed from secure storage.'
+        : provider === 'anthropic'
+          ? 'Anthropic credential removed from this device. Revoke it in the Anthropic console to invalidate it everywhere.'
+          : 'OpenAI key removed from secure storage.',
     )
   }
 
   async function enableBackup() {
-    const endpoint = prompt('Backup relay URL (your deployed Lunara backup Worker):', s!.endpoint)
+    const endpoint = prompt('Backup relay URL (your deployed Ruby backup Worker):', s!.endpoint)
     if (!endpoint) return
     let code = s!.recoveryCode
     if (!code) {
@@ -647,7 +655,7 @@ export function Settings() {
   }
 
   async function wipe() {
-    if (!confirm('Delete ALL Lunara data on this device? This cannot be undone.')) return
+    if (!confirm('Delete ALL Ruby data on this device? This cannot be undone.')) return
     await clearSecureSecrets()
     await db.delete()
     location.reload()
@@ -834,7 +842,7 @@ export function Settings() {
             </span>
           </div>
           <p className="muted" style={{ padding: '8px 0' }}>
-            Health imports are read-only, permission-scoped, and copied into your local Lunara
+            Health imports are read-only, permission-scoped, and copied into your local Ruby
             timeline. Manual entries are never silently replaced, and nothing is uploaded by this
             step.
           </p>
@@ -1047,18 +1055,22 @@ export function Settings() {
 
       <Section title="AI assistant">
         <button className="setting-row" onClick={() => setAssistantOpen(true)}>
-          <span>Open Lunara AI</span>
+          <span>Open Ruby AI</span>
           <span className="muted">
-            {s.provider === 'anthropic'
-              ? hasAnthropicKey
-                ? 'Anthropic connected ›'
-                : 'add Anthropic key ›'
-              : hasOpenAiKey
-                ? 'OpenAI key secured ›'
-                : 'add OpenAI key ›'}
+            {s.provider === 'gemini'
+              ? hasGeminiKey
+                ? 'Gemini connected ›'
+                : 'add Gemini key ›'
+              : s.provider === 'anthropic'
+                ? hasAnthropicKey
+                  ? 'Anthropic connected ›'
+                  : 'add Anthropic key ›'
+                : hasOpenAiKey
+                  ? 'OpenAI key secured ›'
+                  : 'add OpenAI key ›'}
           </span>
         </button>
-        {(s.provider === 'anthropic' ? hasAnthropicKey : hasOpenAiKey) && (
+        {(s.provider === 'gemini' ? hasGeminiKey : s.provider === 'anthropic' ? hasAnthropicKey : hasOpenAiKey) && (
           <button className="setting-row" onClick={removeAiKey}>
             <span>Remove saved credential</span>
             <span className="muted">›</span>
@@ -1074,7 +1086,7 @@ export function Settings() {
       </Section>
 
       <p className="muted" style={{ textAlign: 'center', marginTop: 8, lineHeight: 1.5 }}>
-        Lunara is open source (AGPL-3.0) and not affiliated with Flo Health Inc. Not a medical
+        Ruby is open source (AGPL-3.0) and not affiliated with Flo Health Inc. Not a medical
         device. Removing the app deletes its local history — keep an encrypted backup.
       </p>
     </div>

@@ -382,7 +382,7 @@ function copyFor(kind: ReminderKind, mode: ReminderPreview['mode'] = 'private'):
   body: string
 } {
   if (mode === 'private') {
-    return { title: 'Lunara', body: 'A gentle moment to check in with yourself.' }
+    return { title: 'Ruby', body: 'A gentle moment to check in with yourself.' }
   }
   switch (kind) {
     case 'medication':
@@ -393,18 +393,18 @@ function copyFor(kind: ReminderKind, mode: ReminderPreview['mode'] = 'private'):
     case 'contraception-iud':
     case 'contraception-implant':
     case 'prenatal-vitamin':
-      return { title: 'Lunara reminder', body: 'It is time for a routine you scheduled.' }
+      return { title: 'Ruby reminder', body: 'It is time for a routine you scheduled.' }
     case 'water':
-      return { title: 'Lunara reminder', body: 'A hydration check-in is ready.' }
+      return { title: 'Ruby reminder', body: 'A hydration check-in is ready.' }
     case 'sleep':
-      return { title: 'Lunara reminder', body: 'Your wind-down check-in is ready.' }
+      return { title: 'Ruby reminder', body: 'Your wind-down check-in is ready.' }
     case 'weight':
     case 'movement':
-      return { title: 'Lunara reminder', body: 'Your wellness check-in is ready.' }
+      return { title: 'Ruby reminder', body: 'Your wellness check-in is ready.' }
     case 'journaling':
-      return { title: 'Lunara reminder', body: 'A quiet reflection is ready when you are.' }
+      return { title: 'Ruby reminder', body: 'A quiet reflection is ready when you are.' }
     case 'pregnancy-week':
-      return { title: 'Lunara update', body: 'Your weekly update is ready.' }
+      return { title: 'Ruby update', body: 'Your weekly update is ready.' }
     case 'cycle-estimate':
     case 'period-log':
     case 'bbt':
@@ -412,7 +412,7 @@ function copyFor(kind: ReminderKind, mode: ReminderPreview['mode'] = 'private'):
     case 'pregnancy-test':
       // This wording intentionally makes no claim about fertility, pregnancy,
       // contraception safety, test timing, or the meaning of a cycle estimate.
-      return { title: 'Lunara check-in', body: 'A check-in you scheduled is ready.' }
+      return { title: 'Ruby check-in', body: 'A check-in you scheduled is ready.' }
   }
 }
 

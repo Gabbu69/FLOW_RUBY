@@ -1,0 +1,707 @@
+/* ==========================================================================
+   Ruby ✨ Hello Kitty Theme Stylesheet
+   Complete visual overhaul: pastel pinks, milk whites, candy ribbons,
+   bubbly pill shapes, sweet typography, and kawaii micro-interactions.
+   ========================================================================== */
+
+/* --- 1. Global Typography & Elements ------------------------------------ */
+body,
+button,
+input,
+textarea,
+select {
+  font-family: 'Quicksand', 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+h1, h2, h3, .page h1, .page h2, .overlay h1, .overlay h2, .cycle-ring-number {
+  font-family: 'Nunito', 'Quicksand', sans-serif !important;
+  font-weight: 800 !important;
+  color: var(--ink-950) !important;
+}
+
+/* --- 2. Tab Bar --------------------------------------------------------- */
+.tabbar {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-top: 2px solid #ffd4e1 !important;
+  box-shadow: 0 -10px 30px rgba(255, 105, 140, 0.12) !important;
+  backdrop-filter: blur(20px) saturate(1.4) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(1.4) !important;
+}
+
+.tabbar-item {
+  transition: all 180ms var(--ease-spring) !important;
+  border-radius: 20px !important;
+  margin: 2px 4px !important;
+  color: var(--ink-500) !important;
+  font-weight: 600 !important;
+}
+
+.tabbar-item.is-active {
+  color: var(--hk-red) !important;
+  background: linear-gradient(180deg, #fff0f5 0%, #ffe5ec 100%) !important;
+  border: 1.5px solid #ffb3c6 !important;
+  box-shadow: 0 4px 14px rgba(255, 46, 99, 0.15) !important;
+  transform: translateY(-2px) !important;
+  font-weight: 800 !important;
+}
+
+.tabbar-item.is-active .tabbar-icon {
+  transform: scale(1.15) !important;
+  color: var(--hk-red) !important;
+  filter: drop-shadow(0 2px 4px rgba(255, 46, 99, 0.3));
+}
+
+.tabbar-item .tabbar-icon {
+  transition: transform 200ms var(--ease-spring) !important;
+}
+
+/* --- 3. Cards & Containers ---------------------------------------------- */
+.card,
+.hero-card,
+.daily-card,
+.insight-card,
+.stat-card,
+.settings-group,
+.feature-card,
+.article-card,
+.graph-card,
+.report-card,
+.overview-card,
+.tracker-group-card,
+.prediction-basis-card,
+.peri-score-card,
+.phase-reading-card,
+.daily-insight-tile {
+  background: linear-gradient(180deg, #ffffff 0%, #fff7fa 100%) !important;
+  border: 2px solid #ffcad4 !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: var(--shadow-card) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  transition: transform 180ms var(--ease-spring), box-shadow 180ms var(--ease-soft), border-color 180ms ease !important;
+}
+
+.card:hover,
+.hero-card:hover,
+.insight-card:hover,
+.daily-insight-tile:hover,
+.phase-reading-card:hover {
+  border-color: #ff9bb7 !important;
+  box-shadow: 0 14px 36px rgba(255, 105, 140, 0.18), 0 2px 10px rgba(255, 182, 193, 0.25) !important;
+  transform: translateY(-2px);
+}
+
+/* Card top glossy highlight */
+.card::after,
+.hero-card::after,
+.insight-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Daily Insight Rail Tiles */
+.daily-insight-tile.insight-rose {
+  background: linear-gradient(180deg, #ffffff 0%, #fff0f5 100%) !important;
+  border-color: #ffb3c6 !important;
+}
+
+.daily-insight-tile.insight-teal {
+  background: linear-gradient(180deg, #ffffff 0%, #f0faff 100%) !important;
+  border-color: #b3e5fc !important;
+}
+
+.daily-insight-tile.insight-blue {
+  background: linear-gradient(180deg, #ffffff 0%, #fdf4ff 100%) !important;
+  border-color: #e9d5ff !important;
+}
+
+/* --- 4. Candy Buttons & Action CTAs ------------------------------------- */
+.btn-cta,
+.btn-primary,
+.log-cta,
+.action-btn-primary,
+.checkin-cta,
+.submit-btn {
+  background: linear-gradient(135deg, #ff5d8f 0%, #ff2e63 50%, #e0174a 100%) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  font-size: 17px !important;
+  letter-spacing: 0.02em !important;
+  border-radius: var(--radius-cta) !important;
+  border: 2px solid #ff85a1 !important;
+  box-shadow: 0 5px 0 #b70f3b, 0 10px 22px rgba(255, 46, 99, 0.35) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: all 120ms var(--ease-spring) !important;
+  position: relative;
+}
+
+.btn-cta:hover,
+.btn-primary:hover,
+.log-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 0 #b70f3b, 0 14px 28px rgba(255, 46, 99, 0.42) !important;
+}
+
+.btn-cta:active,
+.btn-primary:active,
+.log-cta:active {
+  transform: translateY(3px) scale(0.98) !important;
+  box-shadow: 0 2px 0 #b70f3b, 0 4px 10px rgba(255, 46, 99, 0.25) !important;
+}
+
+/* Secondary Buttons */
+.btn-secondary,
+.action-btn-secondary,
+.chip-btn,
+.outline-btn {
+  background: linear-gradient(180deg, #ffffff 0%, #ffeef3 100%) !important;
+  color: var(--hk-red) !important;
+  border: 2px solid #ffb3c6 !important;
+  border-radius: var(--radius-sm) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 3px 10px rgba(255, 105, 140, 0.12) !important;
+  transition: all 140ms var(--ease-spring) !important;
+}
+
+.btn-secondary:hover {
+  background: #ffe5ec !important;
+  border-color: var(--hk-red) !important;
+  transform: translateY(-1px);
+}
+
+.btn-secondary:active {
+  transform: scale(0.95) !important;
+}
+
+/* Quick Actions row on Today */
+.today-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.quick-action {
+  background: linear-gradient(180deg, #ffffff 0%, #fff6f9 100%) !important;
+  border: 2px solid #ffcad4 !important;
+  border-radius: 22px !important;
+  padding: 12px 8px !important;
+  box-shadow: 0 6px 16px rgba(255, 105, 140, 0.1) !important;
+  transition: all 160ms var(--ease-spring) !important;
+}
+
+.quick-action:hover {
+  transform: translateY(-3px) scale(1.02);
+  border-color: #ff9bb7 !important;
+}
+
+.quick-action.is-recorded {
+  border-color: var(--hk-red) !important;
+  background: linear-gradient(180deg, #fff0f5 0%, #ffe5ec 100%) !important;
+}
+
+.quick-action-circle {
+  background: #ffe5ec !important;
+  border: 2px solid #ffb3c6 !important;
+  color: var(--hk-red) !important;
+  border-radius: 50% !important;
+}
+
+.quick-action.is-recorded .quick-action-circle {
+  background: var(--hk-red) !important;
+  color: #ffffff !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 3px 10px rgba(255, 46, 99, 0.4);
+}
+
+/* --- 5. Date Strip ------------------------------------------------------ */
+.date-strip-shell {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 2px solid #ffd4e1 !important;
+  border-radius: var(--radius-large) !important;
+  box-shadow: 0 8px 24px rgba(255, 105, 140, 0.1) !important;
+  padding: 6px 4px !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+.date-cell {
+  border-radius: 18px !important;
+  border: 1.5px solid transparent !important;
+  transition: all 180ms var(--ease-spring) !important;
+  font-weight: 700 !important;
+}
+
+.date-cell:hover {
+  background: #fff0f5 !important;
+  border-color: #ffcad4 !important;
+  transform: translateY(-2px);
+}
+
+.date-cell.sel {
+  background: linear-gradient(135deg, #ff477e 0%, #ff2e63 100%) !important;
+  color: #ffffff !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 6px 16px rgba(255, 46, 99, 0.4) !important;
+  transform: scale(1.08) translateY(-2px) !important;
+}
+
+.date-cell.sel .date-cell-caption,
+.date-cell.sel .num {
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
+
+.date-cell.is-today:not(.sel) {
+  border: 2px solid var(--hk-red) !important;
+  background: #ffe5ec !important;
+}
+
+.date-cell.logged .date-cell-dot {
+  background: var(--hk-red) !important;
+  box-shadow: 0 0 6px rgba(255, 46, 99, 0.6) !important;
+  border-radius: 50% !important;
+  width: 6px !important;
+  height: 6px !important;
+}
+
+.date-cell.fertile {
+  background: #e1f5fe !important;
+  border-color: #81d4fa !important;
+}
+
+.date-cell.predicted-ovulation {
+  background: #fff9db !important;
+  border-color: #fbbf24 !important;
+}
+
+/* --- 6. Cycle Ring Aesthetics ------------------------------------------- */
+.cycle-ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  margin: 14px auto;
+  filter: drop-shadow(0 12px 30px rgba(255, 105, 140, 0.18));
+}
+
+.cycle-ring-petal {
+  font-size: 20px;
+  position: absolute;
+  filter: drop-shadow(0 2px 6px rgba(255, 105, 140, 0.3));
+  animation: float-petal 3s ease-in-out infinite alternate;
+}
+
+.petal-one { top: 12px; right: 28px; animation-delay: 0s; }
+.petal-two { bottom: 20px; left: 24px; animation-delay: 1s; font-size: 24px; }
+.petal-three { top: 40px; left: 20px; animation-delay: 2s; }
+
+@keyframes float-petal {
+  0% { transform: translateY(0) rotate(0deg); }
+  100% { transform: translateY(-8px) rotate(8deg); }
+}
+
+.cycle-ring-core {
+  text-align: center;
+}
+
+.cycle-ring-kicker {
+  font-weight: 700 !important;
+  color: var(--rose-600) !important;
+  text-transform: uppercase;
+  font-size: 13px !important;
+  letter-spacing: 0.08em !important;
+}
+
+.cycle-ring-number {
+  font-size: 68px !important;
+  line-height: 1 !important;
+  color: var(--ink-950) !important;
+  background: linear-gradient(135deg, #ff2e63 0%, #c2185b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 900 !important;
+}
+
+.cycle-ring-unit {
+  font-weight: 700 !important;
+  color: var(--ink-650) !important;
+  font-size: 15px !important;
+}
+
+.cycle-ring-day {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 4px 12px;
+  background: #ffe5ec;
+  color: var(--hk-red);
+  border: 1.5px solid #ffb3c6;
+  border-radius: var(--radius-chip);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+/* Phase Hero banner */
+.phase-hero {
+  background: linear-gradient(135deg, #fff0f5 0%, #ffe5ec 50%, #fff7f9 100%) !important;
+  border: 2px solid #ffb3c6 !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: 0 10px 28px rgba(255, 105, 140, 0.12) !important;
+}
+
+.phase-hero.phase-period {
+  background: linear-gradient(135deg, #ffe0e9 0%, #ffd0df 100%) !important;
+  border-color: #ff85a1 !important;
+}
+
+.phase-hero.phase-ovulation {
+  background: linear-gradient(135deg, #fff9db 0%, #fef3c7 100%) !important;
+  border-color: #fcd34d !important;
+}
+
+.phase-hero.phase-fertile {
+  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%) !important;
+  border-color: #7dd3fc !important;
+}
+
+.phase-eyebrow {
+  color: var(--hk-red) !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.05em !important;
+}
+
+/* --- 7. Log Sheet Drawer & Check-in Chips -------------------------------- */
+.sheet-backdrop {
+  background: rgba(45, 24, 34, 0.45) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.sheet,
+.log-sheet-dialog,
+.log-sheet {
+  background: #ffffff !important;
+  border-top: 3px solid #ff9bb7 !important;
+  border-radius: 36px 36px 0 0 !important;
+  box-shadow: 0 -16px 48px rgba(255, 77, 118, 0.25) !important;
+}
+
+.sheet-handle,
+.log-sheet-handle {
+  width: 48px !important;
+  height: 6px !important;
+  background: #ffb3c6 !important;
+  border-radius: 999px !important;
+  margin: 12px auto 8px !important;
+}
+
+/* Log Chips (Flow, Symptoms, Moods, etc.) */
+.log-chip,
+.tag-chip,
+.pill-option,
+.symptom-chip,
+.flow-button {
+  background: #ffffff !important;
+  border: 2px solid #ffd4e1 !important;
+  border-radius: 20px !important;
+  color: var(--ink-900) !important;
+  font-weight: 700 !important;
+  padding: 8px 14px !important;
+  box-shadow: 0 2px 8px rgba(255, 105, 140, 0.08) !important;
+  transition: all 140ms var(--ease-spring) !important;
+}
+
+.log-chip:hover,
+.flow-button:hover,
+.symptom-chip:hover {
+  border-color: #ff9bb7 !important;
+  background: #fff6f9 !important;
+  transform: translateY(-1px);
+}
+
+.log-chip.is-active,
+.flow-button.selected,
+.flow-button.is-active,
+.symptom-chip.is-active,
+.pill-option.is-selected {
+  background: linear-gradient(135deg, #ff477e 0%, #ff2e63 100%) !important;
+  border-color: #ff2e63 !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  box-shadow: 0 4px 14px rgba(255, 46, 99, 0.35) !important;
+  transform: scale(1.04) !important;
+}
+
+/* Form inputs & text areas */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+textarea,
+select {
+  background: #ffffff !important;
+  border: 2px solid #ffcad4 !important;
+  border-radius: 16px !important;
+  color: var(--ink-950) !important;
+  padding: 10px 14px !important;
+  font-weight: 600 !important;
+  box-shadow: inset 0 2px 4px rgba(255, 105, 140, 0.05) !important;
+  transition: border-color 150ms ease, box-shadow 150ms ease !important;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--hk-red) !important;
+  box-shadow: 0 0 0 4px rgba(255, 46, 99, 0.18) !important;
+}
+
+/* --- 8. Toggle Switches (Hello Kitty Candy Style) ------------------------ */
+.switch,
+.toggle-switch {
+  background: #ffd4e1 !important;
+  border: 2px solid #ffb3c6 !important;
+  border-radius: 999px !important;
+  transition: background 200ms ease, border-color 200ms ease !important;
+}
+
+.switch.is-on,
+.toggle-switch[aria-checked="true"],
+input:checked + .switch-slider {
+  background: var(--hk-red) !important;
+  border-color: #e0174a !important;
+}
+
+.switch-thumb,
+.switch-slider::before {
+  background: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+  border-radius: 50% !important;
+}
+
+/* --- 9. Calendar Screen Aesthetics -------------------------------------- */
+.calendar-month-header {
+  color: var(--ink-950) !important;
+  font-weight: 800 !important;
+  font-family: 'Nunito', sans-serif !important;
+}
+
+.calendar-day-cell {
+  border-radius: 16px !important;
+  font-weight: 700 !important;
+  transition: all 140ms var(--ease-spring) !important;
+}
+
+.calendar-day-cell:hover {
+  background: #ffeef3 !important;
+}
+
+.calendar-day-cell.period-day {
+  background: linear-gradient(135deg, #ff477e 0%, #ff2e63 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 10px rgba(255, 46, 99, 0.3) !important;
+}
+
+.calendar-day-cell.fertile-day {
+  background: #e1f5fe !important;
+  color: #0288d1 !important;
+  border: 1.5px solid #81d4fa !important;
+}
+
+.calendar-day-cell.ovulation-day {
+  background: #fff9db !important;
+  color: #d97706 !important;
+  border: 2px solid #fbbf24 !important;
+  font-weight: 900 !important;
+}
+
+/* --- 10. AI Assistant Shell (Hello Kitty Companion) --------------------- */
+.assistant-overlay {
+  background:
+    radial-gradient(circle at 90% 5%, rgba(255, 182, 193, 0.35), transparent 35%),
+    radial-gradient(circle at 10% 90%, rgba(179, 229, 252, 0.3), transparent 30%),
+    #fff6f9 !important;
+}
+
+.assistant-head {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-bottom: 2px solid #ffd4e1 !important;
+  box-shadow: 0 4px 18px rgba(255, 105, 140, 0.1) !important;
+}
+
+.chat-bubble.assistant-bubble,
+.message-bubble.assistant {
+  background: #ffffff !important;
+  border: 2px solid #ffcad4 !important;
+  border-radius: 24px 24px 24px 6px !important;
+  box-shadow: 0 4px 14px rgba(255, 105, 140, 0.1) !important;
+  color: var(--ink-950) !important;
+}
+
+.chat-bubble.user-bubble,
+.message-bubble.user {
+  background: linear-gradient(135deg, #ff477e 0%, #ff2e63 100%) !important;
+  color: #ffffff !important;
+  border-radius: 24px 24px 6px 24px !important;
+  box-shadow: 0 4px 16px rgba(255, 46, 99, 0.3) !important;
+}
+
+.starter-prompt-button {
+  background: #ffffff !important;
+  border: 2px solid #ffcad4 !important;
+  border-radius: 18px !important;
+  color: var(--ink-900) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 3px 10px rgba(255, 105, 140, 0.08) !important;
+  transition: all 160ms var(--ease-spring) !important;
+}
+
+.starter-prompt-button:hover {
+  background: #fff0f5 !important;
+  border-color: var(--hk-red) !important;
+  transform: translateY(-2px);
+}
+
+.assistant-composer {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-top: 2px solid #ffd4e1 !important;
+}
+
+.assistant-composer textarea,
+.assistant-composer input {
+  background: #fff6f9 !important;
+  border: 2px solid #ffb3c6 !important;
+  border-radius: 24px !important;
+}
+
+.assistant-send-button {
+  background: var(--hk-red) !important;
+  color: #ffffff !important;
+  border-radius: 50% !important;
+  box-shadow: 0 4px 12px rgba(255, 46, 99, 0.35) !important;
+}
+
+/* --- 11. Header Top Bars ------------------------------------------------ */
+.topbar,
+.page-header,
+.screen-header {
+  padding-top: max(var(--safe-top), 10px);
+}
+
+.screen-title,
+.header-title {
+  font-family: 'Nunito', sans-serif !important;
+  font-weight: 800 !important;
+  color: var(--ink-950) !important;
+}
+
+.back-btn,
+.close-btn,
+.icon-btn,
+.icon-button {
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 16px !important;
+  background: #ffffff !important;
+  border: 2px solid #ffd4e1 !important;
+  color: var(--hk-red) !important;
+  display: grid !important;
+  place-items: center !important;
+  box-shadow: 0 4px 12px rgba(255, 105, 140, 0.12) !important;
+  transition: all 140ms var(--ease-spring) !important;
+}
+
+.back-btn:hover,
+.close-btn:hover,
+.icon-btn:hover,
+.icon-button:hover {
+  border-color: var(--hk-red) !important;
+  transform: scale(1.06) !important;
+  background: #fff0f5 !important;
+}
+
+/* --- 12. Badges & Tags -------------------------------------------------- */
+.badge,
+.tag,
+.chip-label,
+.pill-badge {
+  background: #ffe5ec !important;
+  color: var(--hk-red) !important;
+  border: 1.5px solid #ffb3c6 !important;
+  border-radius: var(--radius-chip) !important;
+  font-weight: 800 !important;
+  font-size: 12px !important;
+  padding: 3px 10px !important;
+}
+
+.badge-gold,
+.tag-gold {
+  background: #fff9db !important;
+  color: #b45309 !important;
+  border-color: #fde68a !important;
+}
+
+.badge-blue,
+.tag-blue {
+  background: #e1f5fe !important;
+  color: #0288d1 !important;
+  border-color: #b3e5fc !important;
+}
+
+/* --- 13. PIN Lock Screen (Hello Kitty Kawaii Keypad) --------------------- */
+.pin-lock-shell,
+.pin-pad-shell {
+  background: linear-gradient(180deg, #fff0f5 0%, #ffe3eb 100%) !important;
+}
+
+.pin-key,
+.keypad-btn {
+  background: #ffffff !important;
+  border: 2px solid #ffcad4 !important;
+  border-radius: 50% !important;
+  width: 72px !important;
+  height: 72px !important;
+  color: var(--ink-950) !important;
+  font-weight: 800 !important;
+  font-size: 28px !important;
+  box-shadow: 0 6px 16px rgba(255, 105, 140, 0.15) !important;
+  transition: all 120ms var(--ease-spring) !important;
+}
+
+.pin-key:active,
+.keypad-btn:active {
+  transform: scale(0.92) !important;
+  background: #ffe5ec !important;
+  border-color: var(--hk-red) !important;
+}
+
+.pin-dot {
+  width: 16px !important;
+  height: 16px !important;
+  border-radius: 50% !important;
+  border: 2px solid #ff85a1 !important;
+  background: transparent;
+  transition: all 180ms var(--ease-spring) !important;
+}
+
+.pin-dot.filled {
+  background: var(--hk-red) !important;
+  border-color: var(--hk-red) !important;
+  box-shadow: 0 0 10px rgba(255, 46, 99, 0.6) !important;
+  transform: scale(1.15);
+}
+
+/* --- 14. Sparkle Animations --------------------------------------------- */
+@keyframes cute-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.cute-bounce {
+  animation: cute-bounce 2s ease-in-out infinite;
+}

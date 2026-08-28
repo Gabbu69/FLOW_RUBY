@@ -5,7 +5,7 @@ import { db, SK, type ContentBookmark, type DailyLog, type Setting } from './sch
 const SECRET_KEYS: string[] = [SK.pinSalt, SK.pinHash, SK.aiKey]
 
 export interface ExportPayload {
-  app: 'lunara'
+  app: 'ruby'
   v: 1
   exportedAt: string
   dailyLogs: DailyLog[]
@@ -20,7 +20,7 @@ export async function collectExport(): Promise<ExportPayload> {
     db.contentBookmarks.toArray(),
   ])
   return {
-    app: 'lunara',
+    app: 'ruby',
     v: 1,
     exportedAt: new Date().toISOString(),
     dailyLogs,
@@ -30,7 +30,7 @@ export async function collectExport(): Promise<ExportPayload> {
 }
 
 export async function applyImport(payload: ExportPayload): Promise<number> {
-  if (payload.app !== 'lunara' || payload.v !== 1) throw new Error('Not a Lunara export file')
+  if (payload.app !== 'ruby' || payload.v !== 1) throw new Error('Not a Ruby export file')
   await db.transaction('rw', db.dailyLogs, db.settings, db.contentBookmarks, async () => {
     await db.dailyLogs.bulkPut(payload.dailyLogs)
     await db.settings.bulkPut(payload.settings.filter((s) => !SECRET_KEYS.includes(s.key)))

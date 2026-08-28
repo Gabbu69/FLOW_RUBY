@@ -1,41 +1,63 @@
-.lunara-crescent {
+.ruby-bow,
+.ruby-crescent {
   display: block;
   flex: 0 0 auto;
-  color: var(--rose-600);
   overflow: visible;
+  transition: transform 200ms var(--ease-spring);
 }
 
-.lunara-brand-button {
-  width: 42px;
-  height: 42px;
+.ruby-bow:hover,
+.ruby-crescent:hover {
+  transform: scale(1.08) rotate(-4deg);
+}
+
+.ruby-brand-button {
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
   color: var(--rose-600);
   background:
-    radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.88), transparent 42%),
-    var(--rose-100);
-  border: 1px solid rgba(214, 75, 104, 0.14);
-  border-radius: 15px;
-  box-shadow: 0 6px 18px rgba(184, 62, 88, 0.09);
+    radial-gradient(circle at 30% 25%, #ffffff 0%, rgba(255, 255, 255, 0.6) 40%, transparent 60%),
+    linear-gradient(135deg, #ffe5ec 0%, #ffc2d4 100%);
+  border: 2px solid #ff9bb7;
+  border-radius: 18px;
+  box-shadow:
+    0 6px 16px rgba(255, 46, 99, 0.18),
+    0 2px 4px rgba(255, 155, 183, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
   transition:
     color 160ms var(--ease-soft),
     transform 160ms var(--ease-spring),
-    box-shadow 160ms var(--ease-soft);
+    box-shadow 160ms var(--ease-soft),
+    border-color 160ms var(--ease-soft);
 }
 
-.lunara-brand-button .lunara-crescent {
-  width: 24px;
-  height: 24px;
+.ruby-brand-button .ruby-bow,
+.ruby-brand-button .ruby-crescent {
+  width: 28px;
+  height: 28px;
 }
 
-.lunara-brand-button:active {
-  color: var(--rose-700);
-  transform: scale(0.94);
-  box-shadow: 0 3px 10px rgba(184, 62, 88, 0.08);
+.ruby-brand-button:hover {
+  transform: scale(1.05);
+  border-color: var(--hk-red);
+  box-shadow:
+    0 8px 22px rgba(255, 46, 99, 0.28),
+    0 2px 6px rgba(255, 155, 183, 0.4);
+}
+
+.ruby-brand-button:active {
+  transform: scale(0.92);
+  box-shadow:
+    0 2px 8px rgba(255, 46, 99, 0.2),
+    inset 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lunara-brand-button {
+  .ruby-brand-button,
+  .ruby-bow,
+  .ruby-crescent {
     transition: none;
   }
 }

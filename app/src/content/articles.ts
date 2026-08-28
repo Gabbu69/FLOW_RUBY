@@ -18,7 +18,7 @@ export const ARTICLES: Article[] = [
       'The follicular phase overlaps and follows: rising estrogen matures a follicle in the ovary, and energy often climbs with it.',
       'Ovulation is the release of an egg, typically midway through the cycle — but "typically" hides huge variation. The egg lives about a day; sperm can wait up to five, which is why the fertile window opens well before ovulation itself.',
       'The luteal phase runs from ovulation to the next period and is the most consistent stretch, commonly near 14 days. Progesterone dominates here, and so do many premenstrual symptoms.',
-      'Knowing which phase you are in explains a lot — and logging is how Lunara learns your version of it, not the textbook one.',
+      'Knowing which phase you are in explains a lot — and logging is how Ruby learns your version of it, not the textbook one.',
     ],
   },
   {
@@ -29,7 +29,7 @@ export const ARTICLES: Article[] = [
     body: [
       'A study of more than 600,000 cycles found that just 13% were exactly 28 days long. The textbook number is a median, not a norm.',
       'Cycles between 21 and 35 days are widely considered within the usual range, and your own length can drift with age, stress, travel, illness, and body-weight changes.',
-      'That is why Lunara shows an uncertainty band around predictions and never pretends to day-perfect accuracy — anyone who does is guessing with confidence.',
+      'That is why Ruby shows an uncertainty band around predictions and never pretends to day-perfect accuracy — anyone who does is guessing with confidence.',
       'A change worth mentioning to a clinician: periods that stop for months, cycles persistently shorter than 21 days or longer than 35, or bleeding between periods.',
     ],
   },
@@ -42,7 +42,7 @@ export const ARTICLES: Article[] = [
       'Menstrual cramps come from prostaglandins — compounds that make the uterus contract to shed its lining. More prostaglandins usually means stronger cramps.',
       'Heat genuinely helps: a heating pad or warm bath relaxes the muscle. Gentle movement — a walk, light stretching — often does more than staying still.',
       'Over-the-counter anti-inflammatories work best when started early, at the first sign rather than at peak pain. Ask a pharmacist or clinician what suits you.',
-      'Log your cramps in Lunara: seeing that they arrive, say, the day before flow starts turns dread into a plan.',
+      'Log your cramps in Ruby: seeing that they arrive, say, the day before flow starts turns dread into a plan.',
       'Cramps that derail your life, resist medication, or worsen over time deserve a medical conversation — severe pain is common, but it is not something you owe anyone.',
     ],
   },
@@ -54,7 +54,7 @@ export const ARTICLES: Article[] = [
     body: [
       'Pregnancy is possible on roughly six days per cycle: the five days before ovulation and the day of ovulation itself. Sperm survive several days; the egg does not.',
       'The hard part is knowing when ovulation happens. Calendar math gives an estimate; ovulation tests (which detect the LH surge about a day or two before release) and basal body temperature (which rises about half a degree after) sharpen it.',
-      'Lunara combines what you log: with test results and temperatures, the estimate anchors to your body instead of the calendar.',
+      'Ruby combines what you log: with test results and temperatures, the estimate anchors to your body instead of the calendar.',
       'Estimates are estimates. Do not use any app — this one included — as contraception. If avoiding pregnancy matters to you, use a method designed for it.',
     ],
   },
@@ -67,7 +67,7 @@ export const ARTICLES: Article[] = [
       'Basal body temperature is your temperature at complete rest. After ovulation it rises roughly 0.3–0.5 °C and stays up until the next period.',
       'The catch: the rise confirms ovulation after the fact. It cannot predict it. Its value is in mapping your pattern across cycles.',
       'For readable data, measure at the same time every morning, before getting up, after at least a few hours of sleep, with a two-decimal thermometer.',
-      'Log it in Lunara and the chart draws itself — look for the sustained shift, not any single reading. Alcohol, illness, and short sleep all nudge the numbers.',
+      'Log it in Ruby and the chart draws itself — look for the sustained shift, not any single reading. Alcohol, illness, and short sleep all nudge the numbers.',
     ],
   },
   {
@@ -79,7 +79,7 @@ export const ARTICLES: Article[] = [
       'Perimenopause is the years-long runway to menopause, often starting in the mid-40s, sometimes earlier. Hormones do not decline smoothly — they oscillate, and symptoms follow.',
       'The classic early sign is cycle irregularity: a persistent difference of seven days or more between consecutive cycles is a common marker of the transition.',
       'Hot flashes, night sweats, sleep trouble, mood swings, and brain fog are frequent companions. They are real, physiological, and worth tracking — patterns you can show a clinician get taken more seriously than vibes.',
-      'Lunara’s perimenopause mode scores how often transition-associated symptoms appear in your logs and watches cycle variability for you.',
+      'Ruby’s perimenopause mode scores how often transition-associated symptoms appear in your logs and watches cycle variability for you.',
       'Effective treatments exist, from lifestyle changes to hormone therapy. A clinician who dismisses persistent symptoms is a clinician worth replacing.',
     ],
   },
@@ -93,7 +93,7 @@ export const ARTICLES: Article[] = [
       'The first trimester (through week 12) is the most eventful biologically: organs form, and fatigue and nausea peak while nothing shows.',
       'The second (weeks 13–27) is usually the easiest stretch — energy returns, movement becomes noticeable, and the anatomy scan lands around week 20.',
       'The third is growth and preparation: the lungs mature last, and the body rehearses with practice contractions.',
-      'Lunara tracks your week and due date on-device. Prenatal care is irreplaceable — the app is a companion, not a substitute.',
+      'Ruby tracks your week and due date on-device. Prenatal care is irreplaceable — the app is a companion, not a substitute.',
     ],
   },
   {
@@ -103,7 +103,7 @@ export const ARTICLES: Article[] = [
     minutes: 2,
     body: [
       'Period-app data has been shared with advertisers, handed to analytics firms, and subpoenaed in court. This is not hypothetical; it is documented history.',
-      'Lunara’s default is architectural: your logs live in your phone’s app storage. Core tracking needs no account and no Lunara-hosted user database.',
+      'Ruby’s default is architectural: your logs live in your phone’s app storage. Core tracking needs no account and no Ruby-hosted user database.',
       'Optional backup sends an encrypted snapshot to a relay only after you enable it. The recovery code stays with you, so the relay stores an unreadable blob rather than plain health history.',
       'AI is separately opt-in. A cloud provider receives only the prompt and tracker categories you explicitly select for that request; nothing is sent unless you select it for that message.',
       'The code is open source under AGPL-3.0, so none of this requires trust. Read it, build it, verify it.',

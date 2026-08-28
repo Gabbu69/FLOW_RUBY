@@ -20,7 +20,7 @@ export interface FertilityDayGuide {
 
 export interface PregnancyTestPlan {
   /**
-   * @deprecated Lunara does not calculate an app-authored "early" test date.
+   * @deprecated Ruby does not calculate an app-authored "early" test date.
    * Kept as null while UI callers migrate to suggestedDate.
    */
   earliestDate: ISODate | null
@@ -74,7 +74,7 @@ export function fertilityDayGuide(
       band: 'unknown',
       label: 'More data needed',
       relativeDay: null,
-      rationale: 'Lunara needs enough cycle history to estimate an ovulation window.',
+      rationale: 'Ruby needs enough cycle history to estimate an ovulation window.',
     }
   }
 
@@ -112,7 +112,7 @@ export function fertilityDayGuide(
 }
 
 /**
- * Plans dates without interpreting a test result. Lunara deliberately does
+ * Plans dates without interpreting a test result. Ruby deliberately does
  * not invent an O+10 "early test" promise. “Suggested” means on or after the
  * expected period (or 14 days after an ovulation estimate when no period
  * estimate exists); package instructions and clinical advice prevail.
@@ -208,7 +208,7 @@ export function summarizeBbt(
       latestConfirmedOvulation: shifts.at(-1) ?? null,
       status: 'building-baseline',
       explanation:
-        'A few more readings are needed before Lunara can look for a sustained rise against your own baseline.',
+        'A few more readings are needed before Ruby can look for a sustained rise against your own baseline.',
     }
   }
   return {

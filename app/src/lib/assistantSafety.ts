@@ -17,7 +17,7 @@ export function screenAssistantUrgency(message: string): AssistantSafetyIntercep
     return {
       category: 'immediate-danger',
       response:
-        'I’m really sorry you’re dealing with this. Lunara is not an emergency service. If you might act on these thoughts or are in immediate danger, contact your local emergency services now or go to the nearest emergency department. If you can, stay with someone you trust and tell them directly what is happening.',
+        'I’m really sorry you’re dealing with this. Ruby is not an emergency service. If you might act on these thoughts or are in immediate danger, contact your local emergency services now or go to the nearest emergency department. If you can, stay with someone you trust and tell them directly what is happening.',
     }
   }
 
@@ -42,7 +42,7 @@ export function screenAssistantUrgency(message: string): AssistantSafetyIntercep
     return {
       category: 'urgent-physical',
       response:
-        'Those symptoms can require urgent in-person care. Contact local emergency services or go to the nearest emergency department now, especially if symptoms are ongoing, worsening, or accompanied by faintness. Do not rely on Lunara to assess an emergency.',
+        'Those symptoms can require urgent in-person care. Contact local emergency services or go to the nearest emergency department now, especially if symptoms are ongoing, worsening, or accompanied by faintness. Do not rely on Ruby to assess an emergency.',
     }
   }
 

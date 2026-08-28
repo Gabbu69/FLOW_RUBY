@@ -52,7 +52,7 @@ export async function getBiometricStatus(): Promise<BiometricStatus> {
 }
 
 export async function authenticateWithBiometrics(
-  reason = 'Unlock your private Lunara data',
+  reason = 'Unlock your private Ruby data',
 ): Promise<BiometricAuthenticationResult> {
   if (!isNative) {
     return { authenticated: false, kind: 'none', errorCode: 'WEB_UNSUPPORTED' }

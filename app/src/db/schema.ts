@@ -359,7 +359,7 @@ export interface ContentBookmark {
   savedAt: string
 }
 
-export class LunaraDB extends Dexie {
+export class RubyDB extends Dexie {
   dailyLogs!: Table<DailyLog, string>
   cycles!: Table<Cycle, string>
   settings!: Table<Setting, string>
@@ -378,7 +378,7 @@ export class LunaraDB extends Dexie {
   missedDoseEvents!: Table<MissedDoseEvent, string>
 
   constructor() {
-    super('lunara')
+    super('ruby')
     this.version(1).stores({
       dailyLogs: 'date',
       cycles: 'startDate',
@@ -414,7 +414,7 @@ export class LunaraDB extends Dexie {
   }
 }
 
-export const db = new LunaraDB()
+export const db = new RubyDB()
 
 /**
  * Period starts for the engine: first day of each run of consecutive

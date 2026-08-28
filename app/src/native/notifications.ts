@@ -22,7 +22,7 @@ async function ensureChannel(): Promise<void> {
   await LocalNotifications.createChannel({
     id: CHANNEL_ID,
     name: 'Gentle reminders',
-    description: 'Private, generic reminders from Lunara',
+    description: 'Private, generic reminders from Ruby',
     importance: 3,
     visibility: 0,
     vibration: true,
@@ -62,7 +62,7 @@ export async function scheduleDailyReminder(time: string): Promise<void> {
   await cancelDailyReminder()
   const notification: LocalNotificationSchema = {
     id: DAILY_REMINDER_ID,
-    title: 'Lunara',
+    title: 'Ruby',
     body: 'A gentle moment to check in with yourself.',
     channelId: CHANNEL_ID,
     schedule: {
@@ -96,7 +96,7 @@ async function registerReminderActions(): Promise<void> {
     types: [
       {
         id: REMINDER_ACTION_TYPE,
-        iosHiddenPreviewsBodyPlaceholder: 'Open Lunara to view this reminder.',
+        iosHiddenPreviewsBodyPlaceholder: 'Open Ruby to view this reminder.',
         actions: [
           { id: 'complete', title: 'Done' },
           { id: 'snooze', title: 'Snooze 15 min' },

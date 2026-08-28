@@ -18,7 +18,7 @@ export interface ReportExportDependencies {
  * Android WebView do not reliably surface a print dialog for that call.
  */
 export async function exportCurrentReport(
-  jobName = 'Lunara cycle report',
+  jobName = 'Ruby cycle report',
   dependencies: ReportExportDependencies = {},
 ): Promise<void> {
   const native = dependencies.native ?? isNative

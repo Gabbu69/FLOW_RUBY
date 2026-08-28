@@ -2,7 +2,7 @@ import { blobIdFromCode, encryptJSON, decryptJSON, type Envelope } from '../cryp
 import { applyImport, collectExport, type ExportPayload } from '../db/transfer'
 
 /**
- * Zero-knowledge backup to a Lunara relay (Cloudflare Worker + R2). The device
+ * Zero-knowledge backup to a Ruby relay (Cloudflare Worker + R2). The device
  * encrypts everything with a key derived from the recovery code; the relay
  * stores an opaque blob keyed by a hash of that code and can never read it.
  */

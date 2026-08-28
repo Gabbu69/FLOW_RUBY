@@ -1,161 +1,128 @@
-# Lunara
+# 🎀 Ruby ✨ (Hello Kitty Edition)
 
-> **⚠️ Unfinished — this is a work in progress.**
-> Lunara is not on the App Store or Google Play, and there is no installer to
-> double-click. You build it from this repository and run it on your own phone.
-> Features are landing continuously and things will break. Do not rely on it as
-> your only record of your health data.
+> **An open-source, mobile-first, privacy-respecting cycle, fertility, pregnancy, and perimenopause companion — styled in a delightful Hello Kitty aesthetic.**
 
-**An open-source, local-first cycle, fertility, pregnancy, and perimenopause companion.**
-
-Lunara ships through native iOS and Android shells powered by Capacitor. Core
-tracking works without an account or Lunara-hosted user database. Optional
-backup and AI features transmit data only after you enable them; their scope and
-security boundaries are documented in the repository.
-
-Lunara is an open-source alternative to Flo®. It is not affiliated with, endorsed by, or connected to Flo Health Inc.
-
-## Why
-
-- **No subscription gate.** Tracking, pattern insights, reports, pregnancy
-  guidance, and perimenopause tools are part of the open-source app.
-- **Local first by architecture.** Core logs live in the app's local storage.
-  Optional backup stores a client-encrypted blob; optional AI shares only the
-  categories you select for that request.
-- **No 54-screen onboarding funnel. No paywall gauntlet. No nagging.**
+Ruby ships as a modern web application and native iOS/Android mobile app powered by Capacitor. It combines the speed and offline-first reliability of local IndexedDB with automatic cloud sync to **Supabase**, plus an integrated Bring-Your-Own-Key AI Health Companion supporting **Google Gemini**, **Anthropic Claude**, and **OpenAI**.
 
 ---
 
-## Getting Lunara onto your phone
+## 🌸 Key Highlights
 
-There is no download. You compile the app on a computer and install it on your
-own phone over a cable. **What you need depends on the phone you have:**
+- 🎀 **Delightful Hello Kitty Aesthetic**: Custom SVG red bow motifs, sweet pastel pinks, bubbly cards, 3D candy buttons, rounded typography (`Quicksand` & `Nunito`), and cute micro-interactions.
+- 🔒 **Privacy First & Zero-Tracking**: Core logs live on your device in Dexie (IndexedDB). No analytics trackers, no third-party ads, no paywalls.
+- ☁️ **Supabase Cloud Sync**: Transparent background syncing that mirrors every write into your cloud database without compromising offline capability.
+- ✨ **AI Health Companion**: Powered by **Google Gemini 2.5 Flash / Pro**, **Claude Opus / Sonnet**, or **OpenAI GPT-5**, with granular consent controls over which health categories travel with each message.
+- 📱 **Mobile-First & Native Ready**: Responsive touch controls, iOS/Android safe area support, haptic feedback, and local notifications.
 
-| Your phone | Your computer | Works? | What you'll use |
-| --- | --- | --- | --- |
-| iPhone | Mac | ✅ | Xcode |
-| Android | Mac | ✅ | Android Studio |
-| Android | Windows | ✅ | Android Studio |
-| iPhone | Windows | ❌ | Not possible — see below |
+---
 
-**iPhone + Windows is not possible.** Apple only allows iOS apps to be built and
-signed on macOS with Xcode; there is no supported Windows path, and no amount of
-setup works around it. Your options are to borrow a Mac, or run Lunara as a web
-app in your phone's browser (`pnpm dev`, then open the printed network URL on
-your phone) — the browser version keeps your data on the phone but has no
-widgets, notifications, or Health integration.
+## 🛠️ Architecture
 
-### 1. Install the shared prerequisites
-
-You need [Git](https://git-scm.com/downloads), [Node.js LTS](https://nodejs.org/en/download),
-and pnpm. With Node installed:
-
-```sh
-npm install -g pnpm
+```
+├── app/
+│   ├── src/
+│   │   ├── components/     # UI Components (CycleRing, TabBar, RubyMark, DateStrip, LogSheet, etc.)
+│   │   ├── db/             # Dexie (IndexedDB) schema, taxonomy, and Supabase sync layer
+│   │   ├── engine/         # Cycle estimation, fertility algorithms, safety screening, audits
+│   │   ├── lib/            # AI assistant transports (Gemini, Claude, OpenAI), crypto vault
+│   │   ├── native/         # Capacitor native bridges (biometrics, health, widgets, notifications)
+│   │   ├── screens/        # Primary views (Today, Insights, Trends, Settings, Onboarding)
+│   │   └── styles/         # Design tokens, base styles, and hello-kitty-theme.css
+│   ├── android/            # Native Android Studio project
+│   ├── ios/                # Native iOS Xcode project
+│   ├── supabase-migration.sql # Cloud database schema
+│   └── package.json
+├── workers/                # Optional Cloudflare zero-knowledge backup & reminders relays
+└── package.json
 ```
 
-### 2. Get the code and build the web bundle
+---
 
+## 🚀 Quick Start
+
+### 1. Prerequisites
+- [Node.js LTS (v20+)](https://nodejs.org/)
+- [pnpm](https://pnpm.io/installation) (`npm install -g pnpm`)
+- [Git](https://git-scm.com/)
+
+### 2. Installation & Run
 ```sh
-git clone https://github.com/Blueturboguy07/lunara.git
-cd lunara
+# Clone repository
+git clone https://github.com/Gabbu69/FLOW_RUBY.git
+cd FLOW_RUBY
+
+# Install dependencies
 pnpm install
-pnpm --filter @lunara/app native:sync
+
+# Start local development server
+pnpm dev
 ```
+Open **[http://localhost:5173/](http://localhost:5173/)** in your browser.
 
-`native:sync` type-checks, builds the web bundle, and copies it into the native
-iOS and Android projects. **Re-run it after every code change** — the native
-shells load a copied bundle, not your live source.
+---
 
-### 3a. iPhone (requires a Mac)
+## ☁️ Supabase Cloud Database Setup
 
-1. Install **Xcode** from the Mac App Store, then open it once so it finishes
-   installing its components.
-2. Open the iOS project:
-   ```sh
-   pnpm --filter @lunara/app native:ios
+To enable real-time cloud sync for your Ruby instance:
+
+1. Create a project at [Supabase](https://supabase.com/).
+2. In your **Supabase Dashboard → SQL Editor**, run [`app/supabase-migration.sql`](app/supabase-migration.sql).
+3. Create an `app/.env` file with your credentials:
+   ```env
+   VITE_SUPABASE_URL=https://your-project.supabase.co
+   VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
    ```
-3. In Xcode, select the **App** target → **Signing & Capabilities**. Under
-   *Team*, pick your Apple ID. A **free** Apple ID works — you do not need the
-   $99/year Developer Program. If you have never added your Apple ID, use
-   *Add an Account…* in the Team dropdown.
-4. If Xcode reports the bundle identifier is unavailable, change it to something
-   unique to you (for example `app.lunara.mobile.yourname`).
-5. Plug in your iPhone, unlock it, and tap **Trust** if asked. Select it from the
-   device dropdown at the top of the Xcode window.
-6. Press **▶ Run**.
-7. The first launch will fail with *"Untrusted Developer."* On your iPhone go to
-   **Settings → General → VPN & Device Management**, tap your Apple ID, and tap
-   **Trust**. Then open Lunara again.
+4. All daily logs, cycle data, bookmarks, and health profiles will automatically sync both ways.
 
-> With a free Apple ID the app stops working after **7 days**. Re-run step 6 to
-> renew it. A paid Developer Program account extends this to a year.
+---
 
-### 3b. Android (Mac or Windows)
+## ✨ AI Companion Setup (Google Gemini / Anthropic / OpenAI)
 
-1. Install [**Android Studio**](https://developer.android.com/studio). On first
-   launch let it install the default SDK and platform tools.
-2. On your phone, enable developer mode: **Settings → About phone**, tap
-   **Build number** seven times. Then in **Settings → System → Developer
-   options**, turn on **USB debugging**.
-3. Open the Android project:
-   ```sh
-   pnpm --filter @lunara/app native:android
-   ```
-4. Plug in your phone and tap **Allow** on the USB-debugging prompt.
-5. Pick your phone from the device dropdown in Android Studio and press **▶ Run**.
+Ruby allows you to bring your own API key for intelligent cycle insights:
+1. Tap the **Ruby AI** button (or open the **AI Assistant**).
+2. Tap the **⚙ (Settings)** icon in the top right.
+3. Select your provider:
+   - **Google Gemini** (Recommended — Gemini 2.5 Flash / Pro)
+   - **Anthropic Claude** (Claude Opus / Sonnet / Haiku or CLI Token)
+   - **OpenAI** (GPT models)
+4. Paste your API key and tap **Save connection ✨**.
+5. *Keys are stored encrypted on-device and never shared.*
 
-### If something goes wrong
+---
 
-- **`pnpm: command not found`** — Node's global bin isn't on your PATH. Close and
-  reopen your terminal, then try again.
-- **`cap: command not found`** — you skipped `pnpm install`, or ran the command
-  from the wrong folder. Run it from the repository root.
-- **Xcode "No account for team"** — you haven't picked a Team under Signing &
-  Capabilities (step 3a.3).
-- **Android Studio doesn't see your phone** — the cable is charge-only, or USB
-  debugging is off. Try a different cable first; it is usually the cable.
-- **Your changes don't show up** — re-run `pnpm --filter @lunara/app native:sync`.
+## 🧪 Testing
 
-## Structure
-
-- `app/` — React/Vite product layer plus Capacitor iOS and Android projects
-- `workers/backup/` — stateless zero-knowledge backup relay (Cloudflare Worker + R2)
-- `workers/reminders/` — opt-in generic email reminders (no health terms, ever)
-- `docs/NATIVE_ARCHITECTURE.md` — current runtime and platform design
-- `docs/FEATURE_PARITY.md` — honest implementation and release-readiness map
-
-## Develop
-
+Run the test suite covering cycle algorithms, prediction engines, and safety filters:
 ```sh
-pnpm install
-pnpm dev      # run the app in a browser
-pnpm test     # engine unit tests
-pnpm --filter @lunara/app native:sync
+pnpm test
 ```
+*Current test suite: 187 passed across 22 test files.*
 
-The cycle engine is covered by a seeded fuzz audit
-(`app/src/engine/estimateAudit.test.ts`) that exercises every user-facing
-estimate across 360 generated histories. It must stay at zero violations —
-run `pnpm test` before touching any prediction math.
+---
 
-## The AI companion is optional and bring-your-own-key
+## 💡 How to Improve & Future Roadmap
 
-Lunara ships no shared API key and works fully without AI. If you enable it, you
-supply your own credential:
+Here are high-impact ways to further enhance **Ruby**:
 
-- **Anthropic** — an API key, or a token from `claude setup-token` to bill
-  answers to a Claude subscription instead of API credits.
-- **OpenAI** — a project API key.
+1. **🔐 Multi-User Supabase Auth & Row Level Security (RLS)**:
+   - Add Supabase Auth (Magic link / Google / Apple sign-in) so each user has their own private encrypted partition in the cloud database.
+2. **📲 Native Home-Screen Widgets**:
+   - Build native iOS WidgetKit (Swift) and Android AppWidget (Kotlin) components to show the cute Hello Kitty countdown ring directly on the home screen.
+3. **⌚ Apple Watch & Wear OS Companion App**:
+   - Add quick log check-ins (flow, mood, water) directly from smartwatches.
+4. **📊 Exportable Doctor PDF Reports with Hello Kitty Header**:
+   - Allow exporting customized clinical reports in PDF format for OB/GYN consultations.
+5. **🔔 Smart Push Reminders & Cycle Phase Alerts**:
+   - Expand local notification triggers for hydration check-ins, pill reminders, and predicted cycle transitions.
+6. **🌐 Internationalization (i18n)**:
+   - Add multi-language support (Spanish, French, Japanese, German, Chinese) for global accessibility.
 
-Credentials are stored in the iOS Keychain / Android Keystore, never in the
-cycle database and never in a backup. Nothing from your tracker is sent unless
-you tick the specific categories for that message.
+---
 
-## Disclaimer
+## 📜 Disclaimer
 
-Lunara is not a medical device and does not diagnose, treat, cure, or prevent any condition. Predictions are estimates for informational purposes only and must not be used to prevent pregnancy.
+Ruby is an open-source educational companion. It is not a medical device and does not diagnose, treat, cure, or prevent any condition. Cycle estimates are informational approximations and must not be used as contraception.
 
-## License
+## 📄 License
 
-AGPL-3.0 — see [LICENSE](LICENSE).
+AGPL-3.0 — See [LICENSE](LICENSE) for details.

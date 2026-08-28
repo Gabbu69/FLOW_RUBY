@@ -1,12 +1,12 @@
 {
-  "name": "lunara",
+  "name": "ruby",
   "private": true,
   "version": "0.1.0",
   "license": "AGPL-3.0-only",
   "scripts": {
-    "dev": "pnpm --filter @lunara/app dev",
-    "build": "pnpm --filter @lunara/app build",
-    "test": "pnpm --filter @lunara/app test",
-    "preview": "pnpm --filter @lunara/app preview"
+    "dev": "pnpm --filter @ruby/app dev",
+    "build": "pnpm --filter @ruby/app build",
+    "test": "pnpm --filter @ruby/app test",
+    "preview": "pnpm --filter @ruby/app preview"
   }
 }

@@ -6,7 +6,9 @@ import {
   askAssistant,
   CLI_TOKEN_PREFIX,
   DEFAULT_ANTHROPIC_MODEL,
+  DEFAULT_GEMINI_MODEL,
   DEFAULT_OPENAI_MODEL,
+  GEMINI_MODELS,
   type AssistantConfig,
   type AssistantProvider,
   type ChatMessage,
@@ -26,7 +28,7 @@ import {
   setSecureSecret,
 } from '../native/secureVault'
 import { useApp } from '../state/appStore'
-import { LunaraMark } from './LunaraMark'
+import { RubyMark } from './RubyMark'
 import '../styles/assistant.css'
 
 const CONSENT_OPTIONS: Array<{
@@ -53,10 +55,12 @@ const STARTERS = [
 ]
 
 function defaultModel(provider: AssistantProvider): string {
+  if (provider === 'gemini') return DEFAULT_GEMINI_MODEL
   return provider === 'anthropic' ? DEFAULT_ANTHROPIC_MODEL : DEFAULT_OPENAI_MODEL
 }
 
 function vaultKeyFor(provider: AssistantProvider) {
+  if (provider === 'gemini') return SECURE_SECRET_KEYS.geminiApiKey
   return provider === 'anthropic'
     ? SECURE_SECRET_KEYS.anthropicApiKey
     : SECURE_SECRET_KEYS.openAiApiKey
@@ -64,8 +68,8 @@ function vaultKeyFor(provider: AssistantProvider) {
 
 export function AssistantScreen() {
   const setAssistantOpen = useApp((state) => state.setAssistantOpen)
-  const [provider, setProvider] = useState<AssistantProvider>('anthropic')
-  const [model, setModel] = useState(DEFAULT_ANTHROPIC_MODEL)
+  const [provider, setProvider] = useState<AssistantProvider>('gemini')
+  const [model, setModel] = useState(DEFAULT_GEMINI_MODEL)
   const [baseUrl, setBaseUrl] = useState('')
   const [apiKey, setApiKey] = useState<string | null>(null)
   const [keyInput, setKeyInput] = useState('')
@@ -87,7 +91,7 @@ export function AssistantScreen() {
   useEffect(() => {
     let alive = true
     ;(async () => {
-      const [savedProvider, savedModel, savedBaseUrl, savedConsent, status, legacyKey, savedOpenAiKey, savedAnthropicKey] =
+      const [savedProvider, savedModel, savedBaseUrl, savedConsent, status, legacyKey, savedOpenAiKey, savedAnthropicKey, savedGeminiKey] =
         await Promise.all([
           getSetting(SK.aiProvider),
           getSetting(SK.aiModel),
@@ -97,17 +101,26 @@ export function AssistantScreen() {
           getSetting(SK.aiKey),
           getSecureSecret(SECURE_SECRET_KEYS.openAiApiKey),
           getSecureSecret(SECURE_SECRET_KEYS.anthropicApiKey),
+          getSecureSecret(SECURE_SECRET_KEYS.geminiApiKey),
         ])
-      const nextProvider: AssistantProvider = savedProvider === 'openai' ? 'openai' : 'anthropic'
+      const nextProvider: AssistantProvider =
+        savedProvider === 'anthropic'
+          ? 'anthropic'
+          : savedProvider === 'openai'
+            ? 'openai'
+            : 'gemini'
 
-      // One-time migration from the old Dexie implementation. Plaintext is
-      // removed immediately after the secure bridge accepts it.
+      // One-time migration from legacy key storage
       if (legacyKey) {
         await setSecureSecret(SECURE_SECRET_KEYS.openAiApiKey, legacyKey)
         await removeSetting(SK.aiKey)
       }
       const key =
-        nextProvider === 'anthropic' ? savedAnthropicKey : legacyKey || savedOpenAiKey
+        nextProvider === 'gemini'
+          ? savedGeminiKey
+          : nextProvider === 'anthropic'
+            ? savedAnthropicKey
+            : legacyKey || savedOpenAiKey
       if (!alive) return
       setProvider(nextProvider)
       setModel(savedModel || defaultModel(nextProvider))
@@ -165,7 +178,11 @@ export function AssistantScreen() {
           return
         }
         if (provider === 'openai' && !suppliedKey.startsWith('sk-')) {
-          setError('That does not look like an OpenAI API key.')
+          setError('That does not look like an OpenAI API key (expected sk-…).')
+          return
+        }
+        if (provider === 'gemini' && suppliedKey.length < 8) {
+          setError('Please enter a valid Google Gemini API key.')
           return
         }
         await setSecureSecret(vaultKeyFor(provider), suppliedKey)
@@ -180,9 +197,11 @@ export function AssistantScreen() {
       setModel(cleanModel)
       if (!apiKey && !suppliedKey) {
         setError(
-          provider === 'anthropic'
-            ? 'Add an Anthropic API key, or paste a token from `claude setup-token`.'
-            : 'Add an OpenAI project key, or choose another provider.',
+          provider === 'gemini'
+            ? 'Add a Google Gemini API key to continue.'
+            : provider === 'anthropic'
+              ? 'Add an Anthropic API key, or paste a token from `claude setup-token`.'
+              : 'Add an OpenAI project key, or choose another provider.',
         )
         return
       }
@@ -198,9 +217,11 @@ export function AssistantScreen() {
     setApiKey(null)
     setKeyInput('')
     setNotice(
-      provider === 'anthropic'
-        ? 'Anthropic credential removed from this device. Revoke it in the Anthropic console to invalidate it everywhere.'
-        : 'OpenAI key removed.',
+      provider === 'gemini'
+        ? 'Google Gemini API key removed from secure storage.'
+        : provider === 'anthropic'
+          ? 'Anthropic credential removed from this device.'
+          : 'OpenAI key removed.',
     )
   }
 
@@ -216,9 +237,11 @@ export function AssistantScreen() {
     if (!apiKey) {
       setSetupOpen(true)
       setError(
-        provider === 'anthropic'
-          ? 'Add an Anthropic key or CLI token before sending a message.'
-          : 'Add an OpenAI key before sending a message.',
+        provider === 'gemini'
+          ? 'Add a Google Gemini API key before sending a message.'
+          : provider === 'anthropic'
+            ? 'Add an Anthropic key or CLI token before sending a message.'
+            : 'Add an OpenAI key before sending a message.',
       )
       return
     }
@@ -229,96 +252,136 @@ export function AssistantScreen() {
     const safetyIntercept = screenAssistantUrgency(text)
     if (safetyIntercept) {
       setMessages([...next, { role: 'assistant', content: safetyIntercept.response }])
-      setError(null)
-      setNotice('This safety message was generated on device; no provider request was made.')
       return
     }
+
     setBusy(true)
     setError(null)
-    setNotice(null)
     try {
       const approvedContext = await collectApprovedAssistantContext(consent)
       const config: AssistantConfig = {
         provider,
-        apiKey: apiKey ?? undefined,
+        apiKey,
         model,
-        baseUrl: baseUrl || undefined,
+        baseUrl: baseUrl.trim() || undefined,
       }
       const reply = await askAssistant(config, next, approvedContext)
       setMessages([...next, { role: 'assistant', content: reply }])
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Something went wrong.')
+      setError(reason instanceof Error ? reason.message : 'The assistant could not reply.')
     } finally {
       setBusy(false)
     }
   }
 
-
   const sharedCount = Object.values(consent).filter(Boolean).length
 
   return (
-    <div
-      className="overlay assistant-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Lunara AI assistant"
-    >
-      <header className="overlay-head assistant-head">
-        <button className="back-btn" onClick={() => setAssistantOpen(false)} aria-label="Close">
+    <div className="overlay assistant-overlay" role="dialog" aria-modal="true" aria-label="AI Health Companion">
+      <header className="assistant-head">
+        <button
+          className="back-btn"
+          onClick={() => setAssistantOpen(false)}
+          aria-label="Close assistant"
+        >
           ‹
         </button>
-        <div className="assistant-title">
-          <LunaraMark decorative size={25} />
-          <span>
-            <span className="assistant-kicker">Private companion</span>
-            <h2>Lunara AI</h2>
+        <div className="assistant-head-copy">
+          <div className="assistant-title-row">
+            <h1>Ruby Companion ✨</h1>
+            <span className="privacy-badge">
+              <i aria-hidden="true" />
+              {vaultLabel.includes('memory') ? 'In-memory' : 'On-device key'}
+            </span>
+          </div>
+          <span className="assistant-subtitle">
+            {provider === 'gemini' ? 'Google Gemini' : provider === 'anthropic' ? 'Anthropic' : 'OpenAI'} · {model}
           </span>
         </div>
         <button
-          className={`icon-button assistant-settings-button ${setupOpen ? 'is-active' : ''}`}
+          className={`assistant-settings-button ${setupOpen ? 'is-active' : ''}`}
           onClick={() => setSetupOpen((open) => !open)}
-          aria-label={setupOpen ? 'Close AI settings' : 'Open AI settings'}
-          aria-pressed={setupOpen}
+          aria-label="AI connection settings"
+          aria-expanded={setupOpen}
         >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="5" cy="12" r="1.25" />
-            <circle cx="12" cy="12" r="1.25" />
-            <circle cx="19" cy="12" r="1.25" />
-          </svg>
+          ⚙
         </button>
       </header>
 
-      {loading ? (
-        <div className="overlay-body assistant-loading">
-          <LunaraMark decorative size={30} />
-          <span>Preparing your private space…</span>
-        </div>
-      ) : setupOpen ? (
-        <div className="overlay-body assistant-setup">
-          <section className="assistant-setup-intro">
-            <p className="eyebrow">Connection</p>
+      {setupOpen ? (
+        <div className="assistant-setup-pane" role="region" aria-label="AI Connection Setup">
+          <section className="card ai-setup-card">
             <h3>Choose where answers come from</h3>
-            <p>Your key stays on this device. Lunara never ships a shared key.</p>
+            <p>Your API key stays encrypted on this device. Ruby never ships a shared key.</p>
             <div className="ai-provider-grid">
+              <button
+                className={`choice-card compact ${provider === 'gemini' ? 'selected' : ''}`}
+                onClick={() => void chooseProvider('gemini')}
+              >
+                <span className="choice-icon">✨</span>
+                <span><strong>Google Gemini</strong><small>Gemini 2.5 Flash / Pro</small></span>
+              </button>
               <button
                 className={`choice-card compact ${provider === 'anthropic' ? 'selected' : ''}`}
                 onClick={() => void chooseProvider('anthropic')}
               >
                 <span className="choice-icon">✳</span>
-                <span><strong>Anthropic</strong><small>API key or Claude CLI login</small></span>
+                <span><strong>Anthropic</strong><small>Claude Opus / Sonnet / CLI</small></span>
               </button>
               <button
                 className={`choice-card compact ${provider === 'openai' ? 'selected' : ''}`}
                 onClick={() => void chooseProvider('openai')}
               >
                 <span className="choice-icon">✦</span>
-                <span><strong>OpenAI</strong><small>Cloud · your key</small></span>
+                <span><strong>OpenAI</strong><small>GPT-5 / Project Key</small></span>
               </button>
             </div>
           </section>
 
           <section className="card ai-setup-card">
-            {provider === 'anthropic' ? (
+            {provider === 'gemini' ? (
+              <>
+                <div className="field">
+                  <label htmlFor="assistant-key">Google Gemini API key</label>
+                  <input
+                    id="assistant-key"
+                    type="password"
+                    autoComplete="off"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    placeholder={apiKey ? 'Saved securely · enter to replace' : 'AIzaSy…'}
+                    value={keyInput}
+                    onChange={(event) => setKeyInput(event.target.value)}
+                  />
+                  <small className="field-hint">
+                    Get a free API key at{' '}
+                    <a
+                      href="https://aistudio.google.com/app/apikey"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: 'var(--hk-red)', textDecoration: 'underline', fontWeight: 700 }}
+                    >
+                      Google AI Studio ↗
+                    </a>
+                  </small>
+                </div>
+                <div className="field">
+                  <label htmlFor="assistant-model">Model</label>
+                  <select
+                    id="assistant-model"
+                    value={GEMINI_MODELS.some((entry) => entry.id === model) ? model : DEFAULT_GEMINI_MODEL}
+                    onChange={(event) => setModel(event.target.value)}
+                  >
+                    {GEMINI_MODELS.map((entry) => (
+                      <option key={entry.id} value={entry.id}>
+                        {entry.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            ) : provider === 'anthropic' ? (
               <>
                 <div className="field">
                   <label htmlFor="assistant-key">Anthropic API key or CLI token</label>
@@ -347,16 +410,14 @@ export function AssistantScreen() {
                 <details className="assistant-key-fallback">
                   <summary>Use your Claude subscription instead (CLI login)</summary>
                   <p className="microcopy">
-                    Lunara runs in a mobile WebView, so it cannot shell out to the{' '}
+                    Ruby runs in a mobile WebView, so it cannot shell out to the{' '}
                     <code>claude</code> CLI the way a server can. Run this once on a computer
                     where you are signed in:
                   </p>
                   <pre className="cli-snippet"><code>claude setup-token</code></pre>
                   <p className="microcopy">
                     Paste the <code>{CLI_TOKEN_PREFIX}…</code> token it prints into the field
-                    above. Lunara sends it as an OAuth bearer credential, so answers are billed
-                    to your Claude subscription rather than to API credits. The token expires —
-                    rerun the command to refresh it.
+                    above.
                   </p>
                 </details>
 
@@ -415,8 +476,8 @@ export function AssistantScreen() {
 
           {notice && <div className="assistant-notice" role="status">{notice}</div>}
           {error && <div className="assistant-error" role="alert">{error}</div>}
-          <button className="cta" onClick={saveConfiguration}>
-            Save connection
+          <button className="cta btn-cta" onClick={saveConfiguration}>
+            Save connection ✨
           </button>
         </div>
       ) : (
@@ -429,7 +490,7 @@ export function AssistantScreen() {
               aria-controls="assistant-consent-options"
             >
               <span className="assistant-context-mark" aria-hidden="true">
-                <LunaraMark decorative size={18} />
+                <RubyMark decorative size={20} />
               </span>
               <span className="assistant-context-copy">
                 <strong>Tracker context</strong>
@@ -441,7 +502,7 @@ export function AssistantScreen() {
               </span>
               <span className="privacy-pill">
                 <i aria-hidden="true" />
-                {provider === 'anthropic' ? 'Anthropic' : 'OpenAI'}
+                {provider === 'gemini' ? 'Gemini' : provider === 'anthropic' ? 'Anthropic' : 'OpenAI'}
               </span>
               <svg className="assistant-context-chevron" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="m7 9.5 5 5 5-5" />
@@ -478,91 +539,94 @@ export function AssistantScreen() {
           </section>
 
           <div
-            className={`overlay-body assistant-messages ${messages.length === 0 ? 'is-empty' : ''}`}
             ref={scroller}
+            className="assistant-thread"
+            role="log"
             aria-live="polite"
+            aria-label="Conversation"
           >
             {messages.length === 0 && (
-              <div className="assistant-empty">
-                <div className="assistant-orb" aria-hidden="true">
-                  <span />
-                  <LunaraMark decorative size={38} />
-                </div>
-                <span className="assistant-empty-kicker">Private by design</span>
-                <h3>What would you like to understand?</h3>
+              <div className="assistant-empty-state">
+                <RubyMark decorative size={48} />
+                <h2>Ask your Ruby companion</h2>
                 <p>
-                  Ask a general question, or selectively share tracker context for a more
-                  personal answer.
+                  Questions about cycles, fertility, symptoms, or what to ask your doctor.
+                  Answers use your own configured {provider === 'gemini' ? 'Google Gemini' : provider === 'anthropic' ? 'Anthropic' : 'OpenAI'} key.
                 </p>
-                <div className="starter-list" aria-label="Starter questions">
-                  {STARTERS.map((starter) => (
-                    <button key={starter} onClick={() => send(starter)}>
-                      <span>{starter}</span>
-                      <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M7 17 17 7M9 7h8v8" />
-                      </svg>
+                <div className="starters-list">
+                  {STARTERS.map((text) => (
+                    <button
+                      key={text}
+                      className="starter-prompt-button"
+                      onClick={() => void send(text)}
+                    >
+                      <span>✨</span>
+                      <span>{text}</span>
                     </button>
                   ))}
                 </div>
               </div>
             )}
+
             {messages.map((message, index) => (
-              <div key={index} className={`chat-bubble ${message.role}`}>
+              <div
+                key={index}
+                className={`message-bubble ${message.role === 'user' ? 'user' : 'assistant'}`}
+              >
                 {message.role === 'assistant' && (
-                  <span className="chat-bubble-mark" aria-hidden="true">
-                    <LunaraMark decorative size={14} />
+                  <span className="assistant-bubble-mark" aria-hidden="true">
+                    <RubyMark decorative size={18} />
                   </span>
                 )}
-                <span>{message.content}</span>
+                <div className="message-content">{message.content}</div>
               </div>
             ))}
+
             {busy && (
-              <div className="chat-bubble assistant typing" aria-label="Lunara is thinking">
-                <span className="chat-bubble-mark" aria-hidden="true">
-                  <LunaraMark decorative size={14} />
+              <div className="message-bubble assistant thinking" aria-label="Thinking">
+                <span className="assistant-bubble-mark" aria-hidden="true">
+                  <RubyMark decorative size={18} />
                 </span>
-                <span>Thinking</span>
-                <i /><i /><i />
+                <div className="thinking-dots">
+                  <span />
+                  <span />
+                  <span />
+                </div>
               </div>
             )}
-            {notice && <div className="assistant-notice" role="status">{notice}</div>}
-            {error && <div className="assistant-error" role="alert">{error}</div>}
           </div>
-        </>
-      )}
 
-      {!loading && !setupOpen && (
-        <form
-          className="assistant-compose"
-          onSubmit={(event) => {
-            event.preventDefault()
-            void send()
-          }}
-        >
-          <div className="assistant-compose-row">
+          {error && (
+            <div className="assistant-error-banner" role="alert">
+              <span>{error}</span>
+              <button onClick={() => setSetupOpen(true)}>AI Settings</button>
+            </div>
+          )}
+
+          <div className="assistant-composer">
             <textarea
               ref={composerInput}
               rows={1}
-              placeholder="Message Lunara…"
-              aria-label="Message Lunara"
-              enterKeyHint="send"
+              placeholder="Ask about cycles, fertility, symptoms…"
               value={input}
-              onChange={(event) => setInput(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && !event.shiftKey) {
-                  event.preventDefault()
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
                   void send()
                 }
               }}
             />
-            <button type="submit" disabled={busy || !input.trim()} aria-label="Send message">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 18V6m-5 5 5-5 5 5" />
-              </svg>
+            <button
+              className="assistant-send-button"
+              disabled={!input.trim() || busy}
+              onClick={() => void send()}
+              aria-label="Send message"
+            >
+              ➔
             </button>
           </div>
-          <p>Educational support only · not diagnosis or emergency care</p>
-        </form>
+        </>
       )}
     </div>
   )

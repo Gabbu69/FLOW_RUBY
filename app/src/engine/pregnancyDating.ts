@@ -65,7 +65,7 @@ export function resolvePregnancyDating(
       estimatedDueDate = input.date
       authority = 'clinician-assigned'
       explanation =
-        'This is the due date assigned by your clinician. Lunara uses it as the current timeline anchor.'
+        'This is the due date assigned by your clinician. Ruby uses it as the current timeline anchor.'
       break
     case 'conception':
       estimatedDueDate = addDays(input.date, DAYS_FROM_CONCEPTION_TO_EDD)

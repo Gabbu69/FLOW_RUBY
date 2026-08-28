@@ -1,5 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
-import { LunaraMark } from './LunaraMark'
+import { RubyMark } from './RubyMark'
 
 interface Props {
   children: ReactNode
@@ -17,7 +17,7 @@ export class StartupErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('[Lunara startup] React failed to render.', error, info.componentStack)
+    console.error('[Ruby startup] React failed to render.', error, info.componentStack)
   }
 
   render() {
@@ -29,16 +29,16 @@ export class StartupErrorBoundary extends Component<Props, State> {
         <div className="page startup-failure-page">
           <section className="card startup-failure-card" role="alert">
             <span className="startup-failure-mark" aria-hidden="true">
-              <LunaraMark decorative size={34} />
+              <RubyMark decorative size={34} />
             </span>
             <p className="page-kicker">Startup interrupted</p>
-            <h1>Lunara couldn’t open.</h1>
+            <h1>Ruby couldn’t open.</h1>
             <p className="muted">
               Your local health data has not been deleted. Reload the app and,
               if this keeps happening, share the technical detail below.
             </p>
             <button className="cta" type="button" onClick={() => window.location.reload()}>
-              Reload Lunara
+              Reload Ruby
             </button>
             <details className="startup-failure-details">
               <summary>Technical detail</summary>

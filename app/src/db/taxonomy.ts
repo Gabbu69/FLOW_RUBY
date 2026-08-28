@@ -168,7 +168,7 @@ export interface TrackerGroup {
 
 /**
  * Original, extensible event catalog. Combined with the typed trackers above,
- * Lunara ships more than 80 loggable signals without copying another app's
+ * Ruby ships more than 80 loggable signals without copying another app's
  * labels, ordering, or artwork.
  */
 export const TRACKER_GROUPS: TrackerGroup[] = [

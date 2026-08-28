@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Lunara</string>
-    <string name="title_activity_main">Lunara</string>
-    <string name="package_name">app.lunara.mobile</string>
-    <string name="custom_url_scheme">app.lunara.mobile</string>
-    <string name="widget_name">Lunara cycle</string>
-    <string name="widget_description">A private glance at your current Lunara cycle snapshot</string>
+    <string name="app_name">Ruby</string>
+    <string name="title_activity_main">Ruby</string>
+    <string name="package_name">app.ruby.mobile</string>
+    <string name="custom_url_scheme">app.ruby.mobile</string>
+    <string name="widget_name">Ruby cycle</string>
+    <string name="widget_description">A private glance at your current Ruby cycle snapshot</string>
 </resources>

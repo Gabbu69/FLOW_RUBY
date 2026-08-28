@@ -8,7 +8,7 @@ export interface SafetyTriageInput {
   }
   bleeding?: {
     /**
-     * Number of pads or tampons fully soaked in one hour. Lunara only applies
+     * Number of pads or tampons fully soaked in one hour. Ruby only applies
      * the emergency bleeding rule when this is at least 1 and the duration is
      * explicitly at least 2 consecutive hours.
      */
@@ -102,7 +102,7 @@ const ACTIONS: Record<SafetyUrgency, string> = {
 }
 
 const CAVEAT =
-  'This is a limited, non-diagnostic safety screen based only on the answers provided. A lower care level or no match does not mean a symptom is safe, and Lunara cannot rule out an emergency.'
+  'This is a limited, non-diagnostic safety screen based only on the answers provided. A lower care level or no match does not mean a symptom is safe, and Ruby cannot rule out an emergency.'
 
 function reason(
   id: SafetyReasonId,

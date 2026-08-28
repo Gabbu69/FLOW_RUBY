@@ -4,11 +4,13 @@ import App from './App'
 import { StartupErrorBoundary } from './components/StartupErrorBoundary'
 import { initializeNativeRuntime } from './native/runtime'
 import { Onboarding } from './screens/Onboarding'
+import { installSyncHooks, pullFromSupabase } from './db/supabaseSync'
 import './styles/base.css'
 import './styles/app.css'
 import './styles/health-import.css'
+import './styles/hello-kitty-theme.css'
 
-// Retire service workers left behind by pre-native development builds. Lunara
+// Retire service workers left behind by pre-native development builds. Ruby
 // no longer registers a PWA or depends on service-worker caching.
 if ('serviceWorker' in navigator) {
   void navigator.serviceWorker
@@ -18,6 +20,14 @@ if ('serviceWorker' in navigator) {
 }
 
 void initializeNativeRuntime()
+
+// Install Supabase sync hooks so every Dexie write propagates to the cloud
+installSyncHooks()
+
+// Hydrate local DB from Supabase on startup (only fills empty tables)
+void pullFromSupabase().catch((err: unknown) => {
+  console.warn('[Ruby] Initial cloud sync failed — continuing offline', err)
+})
 
 const onboardingPreview =
   import.meta.env.DEV &&

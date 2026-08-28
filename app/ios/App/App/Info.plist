@@ -18,31 +18,31 @@
 		</dict>
 	</dict>
 	<key>NSFaceIDUsageDescription</key>
-	<string>Use Face ID to unlock your private Lunara data.</string>
+	<string>Use Face ID to unlock your private Ruby data.</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Lunara imports only the health categories you choose so your cycle history can stay current on this device.</string>
+	<string>Ruby imports only the health categories you choose so your cycle history can stay current on this device.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Lunara connects to a local AI service, such as Ollama, only when you configure one.</string>
+	<string>Ruby connects to a local AI service, such as Ollama, only when you configure one.</string>
 	<key>CAPACITOR_DEBUG</key>
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
-		<string>app.lunara.mobile.widget-refresh</string>
+		<string>app.ruby.mobile.widget-refresh</string>
 	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>Lunara</string>
+        <string>Ruby</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>app.lunara.mobile.openrouter</string>
+			<string>app.ruby.mobile.openrouter</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>lunara</string>
+				<string>ruby</string>
 			</array>
 		</dict>
 	</array>

@@ -59,7 +59,7 @@ export default function App() {
     // Persist legacy/fresh-install profile state outside Dexie's read-only
     // liveQuery context. getHealthProfile remains safe to call reactively.
     void ensureHealthProfile().catch((error: unknown) => {
-      console.error('[Lunara startup] Could not persist the health profile migration.', error)
+      console.error('[Ruby startup] Could not persist the health profile migration.', error)
     })
   }, [])
 
@@ -110,7 +110,7 @@ export default function App() {
   }, [setLocked])
 
 
-  if (!ready) return <div className="page page-loading" role="status" aria-label="Loading Lunara" />
+  if (!ready) return <div className="page page-loading" role="status" aria-label="Loading Ruby" />
   if (!onboarded) return <Onboarding onDone={() => setOnboarded(true)} />
   if (locked) return <PinLock />
 

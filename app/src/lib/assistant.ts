@@ -7,7 +7,7 @@ import { providerFetch } from './providerFetch'
  * No health data is loaded here. Callers must build `approvedContext`
  * explicitly from the toggles the user selected for the current request.
  */
-export const ASSISTANT_SYSTEM_PROMPT = `You are Lunara's health companion inside a privacy-first menstrual-health app. Explain cycles, fertility, pregnancy, symptoms, and perimenopause clearly and warmly.
+export const ASSISTANT_SYSTEM_PROMPT = `You are Ruby's health companion inside a privacy-first menstrual-health app. Explain cycles, fertility, pregnancy, symptoms, and perimenopause clearly and warmly.
 
 Safety rules:
 - You provide general education, not a diagnosis, prescription, or substitute for a clinician.
@@ -23,7 +23,7 @@ export interface ChatMessage {
   content: string
 }
 
-export type AssistantProvider = 'anthropic' | 'openai'
+export type AssistantProvider = 'anthropic' | 'openai' | 'gemini'
 
 /**
  * How an Anthropic credential authenticates.
@@ -54,11 +54,18 @@ export type ApprovedAssistantContext = Record<string, unknown>
 
 export const DEFAULT_ANTHROPIC_MODEL = 'claude-opus-5'
 export const DEFAULT_OPENAI_MODEL = 'gpt-5.6-terra'
+export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash'
 
 export const ANTHROPIC_MODELS = [
   { id: 'claude-opus-5', label: 'Claude Opus 5 · most capable' },
   { id: 'claude-sonnet-5', label: 'Claude Sonnet 5 · balanced' },
   { id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5 · fastest' },
+] as const
+
+export const GEMINI_MODELS = [
+  { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash · fast & smart (Recommended)' },
+  { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro · deep reasoning' },
+  { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash · responsive' },
 ] as const
 
 type FetchLike = typeof fetch
@@ -88,6 +95,9 @@ ${JSON.stringify(approvedContext)}`
 
 function apiError(provider: AssistantProvider, status: number): Error {
   if (status === 401 || status === 403) {
+    if (provider === 'gemini') {
+      return new Error('Google Gemini rejected that API key. Please check your key in AI settings.')
+    }
     return new Error(
       provider === 'openai'
         ? 'OpenAI rejected that key. Add a fresh project key in AI settings.'
@@ -124,17 +134,11 @@ async function askAnthropic(
     throw new Error('That does not look like an Anthropic credential (expected sk-ant-…).')
   }
 
-  // A CLI token is an OAuth credential: Bearer header plus the OAuth beta.
-  // A console key is an x-api-key credential. Sending either on the other's
-  // header is a 401, so the kind decides the client shape.
   const client = new Anthropic({
     ...(kind === 'cli-token'
       ? { authToken: credential, defaultHeaders: { 'anthropic-beta': ANTHROPIC_OAUTH_BETA } }
       : { apiKey: credential }),
     fetch: fetchImpl,
-    // The credential is the user's own, entered on their device, and is never
-    // sent anywhere but Anthropic. There is no server to proxy through in a
-    // local-first app.
     dangerouslyAllowBrowser: true,
     maxRetries: 1,
   })
@@ -154,8 +158,6 @@ async function askAnthropic(
     throw new Error('Could not reach Anthropic. Check your network connection.')
   }
 
-  // Safety classifiers can decline a request; that arrives as a normal 200 with
-  // an empty content array, so this must be checked before reading content.
   if (response.stop_reason === 'refusal') {
     throw new Error(
       'Anthropic’s safety system declined this request. Rephrasing it usually helps; for urgent symptoms, contact a clinician.',
@@ -225,6 +227,76 @@ async function askOpenAI(
   return text
 }
 
+async function askGemini(
+  config: AssistantConfig,
+  history: ChatMessage[],
+  approvedContext: ApprovedAssistantContext | undefined,
+  fetchImpl: FetchLike,
+): Promise<string> {
+  const apiKey = config.apiKey?.trim()
+  if (!apiKey) throw new Error('Add a Google Gemini API key before sending a message.')
+  const model = config.model || DEFAULT_GEMINI_MODEL
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`
+
+  const contents = boundedHistory(history).map((msg) => ({
+    role: msg.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: msg.content }],
+  }))
+
+  const systemText = contextInstructions(approvedContext)
+
+  const response = await fetchImpl(url, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      systemInstruction: {
+        parts: [{ text: systemText }],
+      },
+      contents,
+      generationConfig: {
+        maxOutputTokens: 1200,
+        temperature: 0.7,
+      },
+    }),
+  })
+
+  if (!response.ok) {
+    let errorDetail = ''
+    try {
+      const errJson = (await response.json()) as { error?: { message?: string } }
+      errorDetail = errJson.error?.message || ''
+    } catch {
+      // ignore parsing error
+    }
+    if (response.status === 400 && errorDetail.includes('API_KEY_INVALID')) {
+      throw new Error('Google Gemini rejected that API key. Check your key in AI settings.')
+    }
+    if (response.status === 403 || response.status === 401) {
+      throw new Error('Google Gemini access denied. Verify your API key in AI settings.')
+    }
+    if (response.status === 429) {
+      throw new Error('Google Gemini rate limit reached. Try again in a few moments.')
+    }
+    throw new Error(`Google Gemini request failed (${response.status}): ${errorDetail || 'Check provider and key settings'}`)
+  }
+
+  const data = (await response.json()) as {
+    candidates?: Array<{
+      finishReason?: string
+      content?: { parts?: Array<{ text?: string }> }
+    }>
+  }
+  const candidate = data.candidates?.[0]
+  if (candidate?.finishReason === 'SAFETY') {
+    throw new Error('Google Gemini safety filters declined this request. Rephrasing may help.')
+  }
+  const text = candidate?.content?.parts?.map((p) => p.text ?? '').join('').trim()
+  if (!text) throw new Error('Google Gemini returned no readable text.')
+  return text
+}
+
 export async function askAssistant(
   config: AssistantConfig,
   history: ChatMessage[],
@@ -234,6 +306,9 @@ export async function askAssistant(
   if (history.length === 0) throw new Error('Write a message first.')
   if (config.provider === 'anthropic') {
     return askAnthropic(config, history, approvedContext, fetchImpl)
+  }
+  if (config.provider === 'gemini') {
+    return askGemini(config, history, approvedContext, fetchImpl)
   }
   return askOpenAI(config, history, approvedContext, fetchImpl)
 }

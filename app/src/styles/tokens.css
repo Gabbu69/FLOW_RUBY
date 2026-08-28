@@ -1,93 +1,107 @@
 /*
- * Lunara's visual language: warm mineral paper, ink, coral, tidal teal, and
- * small sunlit accents. The serif/sans pairing gives intimate health data an
- * editorial tone while remaining native-feeling and highly legible.
+ * Ruby ✨ Hello Kitty Theme Design Tokens
+ * A joyful, charming palette inspired by Hello Kitty:
+ * Sweet pastel pinks, marshmallow creams, signature candy-red ribbons,
+ * sunny pastel accents, pillowy radii, and cute rounded typography.
  */
 :root {
   color-scheme: light;
 
-  /* Core palette */
-  --ink-950: #2b2024;
-  --ink-900: #38292f;
-  --ink-800: #4e3b42;
-  --ink-650: #6f5a62;
-  --ink-500: #8e7980;
-  --ink-300: #b9a9ad;
+  /* Hello Kitty Core Palette: Sweet Chocolate Ink */
+  --ink-950: #2d1822;
+  --ink-900: #3e2430;
+  --ink-800: #553544;
+  --ink-650: #754c5e;
+  --ink-500: #966b7e;
+  --ink-300: #c9a7b7;
 
-  --paper-50: #fffdf9;
-  --paper-100: #fbf7f0;
-  --paper-150: #f7f0e8;
-  --paper-200: #f1e7dc;
-  --paper-300: #e8d8cb;
+  /* Hello Kitty Milk Cream & Marshmallow Paper */
+  --paper-50: #ffffff;
+  --paper-100: #fff6f9;
+  --paper-150: #ffedf2;
+  --paper-200: #ffe3eb;
+  --paper-300: #ffd4e1;
 
-  --rose-700: #b83e58;
-  --rose-600: #d64b68;
-  --rose-500: #ea6079;
-  --rose-400: #f17d8d;
-  --rose-300: #f6b4bd;
-  --rose-200: #f9d2d6;
-  --rose-100: #fbe8e7;
-  --coral-400: #f28b75;
+  /* Hello Kitty Signature Bow Red & Vibrant Strawberries */
+  --hk-red: #ff2e63;
+  --hk-red-deep: #e0174a;
+  --hk-red-glow: rgba(255, 46, 99, 0.35);
 
-  --teal-700: #216f70;
-  --teal-600: #2f8584;
-  --teal-500: #45a29f;
-  --teal-300: #9bcfca;
-  --teal-200: #cae7e1;
-  --teal-100: #e5f2ee;
+  /* Hello Kitty Soft & Cheerful Pinks */
+  --rose-700: #c2185b;
+  --rose-600: #e91e63;
+  --rose-500: #ff4081;
+  --rose-400: #ff6b98;
+  --rose-300: #ff9bb7;
+  --rose-200: #ffc4d6;
+  --rose-100: #ffe6ee;
+  --coral-400: #ff758c;
 
-  --yellow-600: #d49a2d;
-  --yellow-500: #edb846;
-  --yellow-300: #f7d88e;
-  --yellow-200: #fbe8b8;
-  --yellow-100: #fff3d6;
+  /* Hello Kitty Pastel Accents: Baby Blue (Kitty's overalls/accents) */
+  --teal-700: #0288d1;
+  --teal-600: #03a9f4;
+  --teal-500: #4fc3f7;
+  --teal-300: #81d4fa;
+  --teal-200: #b3e5fc;
+  --teal-100: #e1f5fe;
 
-  --clay-500: #b78368;
-  --clay-200: #ead1c3;
-  --clay-100: #f3e3d9;
-  --purple-500: #856f9d;
-  --red-500: #c94747;
+  /* Hello Kitty Pastel Accents: Honey Yellow (Kitty's cute button nose / stars) */
+  --yellow-600: #f59e0b;
+  --yellow-500: #fbbf24;
+  --yellow-300: #fde68a;
+  --yellow-200: #fef3c7;
+  --yellow-100: #fffbeb;
 
-  /* Compatibility aliases used by existing views */
+  /* Sweet Lavender & Strawberry Clay */
+  --clay-500: #d9779f;
+  --clay-200: #fbcfe8;
+  --clay-100: #fdf2f8;
+  --purple-500: #b388ff;
+  --purple-200: #ede7f6;
+  --red-500: #ff3366;
+
+  /* Compatibility aliases */
   --plum-900: var(--ink-900);
   --plum-500: var(--ink-500);
-  --orange-500: #d88938;
+  --orange-500: #ff8a65;
   --bg: var(--paper-100);
-  --card: rgba(255, 253, 249, 0.92);
+  --card: rgba(255, 255, 255, 0.94);
 
-  /* Surfaces and lines */
-  --surface-raised: rgba(255, 254, 251, 0.94);
-  --surface-glass: rgba(255, 253, 249, 0.78);
-  --line-soft: rgba(82, 57, 65, 0.09);
-  --line-medium: rgba(82, 57, 65, 0.16);
-  --shadow-card: 0 12px 36px rgba(75, 45, 50, 0.07);
-  --shadow-float: 0 22px 60px rgba(75, 45, 50, 0.15);
-  --shadow-rose: 0 14px 28px rgba(213, 72, 99, 0.22);
+  /* Hello Kitty Candy Surfaces & Glowing Borders */
+  --surface-raised: rgba(255, 255, 255, 0.98);
+  --surface-glass: rgba(255, 245, 248, 0.88);
+  --line-soft: rgba(255, 105, 140, 0.14);
+  --line-medium: rgba(255, 77, 118, 0.24);
+  --line-bold: rgba(255, 46, 99, 0.4);
 
-  /* Shape */
-  --radius-xs: 8px;
-  --radius-sm: 13px;
+  /* Bubbly Kawaii Shadows */
+  --shadow-card: 0 10px 30px rgba(255, 105, 140, 0.12), 0 2px 10px rgba(255, 182, 193, 0.2);
+  --shadow-float: 0 20px 48px rgba(255, 77, 118, 0.2), 0 4px 14px rgba(255, 150, 175, 0.24);
+  --shadow-rose: 0 10px 26px rgba(255, 46, 99, 0.32);
+  --shadow-candy: 0 6px 0 rgba(224, 23, 74, 0.85);
+
+  /* Pillowy Rounded Shapes */
+  --radius-xs: 10px;
+  --radius-sm: 16px;
   --radius-chip: 999px;
-  --radius-cta: 19px;
-  --radius-card: 24px;
-  --radius-large: 32px;
+  --radius-cta: 22px;
+  --radius-card: 26px;
+  --radius-large: 34px;
 
-  /* Typography */
-  --font-display:
-    'Iowan Old Style', 'Baskerville', 'Times New Roman', serif;
-  --font-sans:
-    'Avenir Next', Avenir, 'Segoe UI', Helvetica, sans-serif;
-  --tracking-tight: -0.035em;
-  --tracking-label: 0.12em;
+  /* Kawaii Rounded Typography */
+  --font-display: 'Nunito', 'Quicksand', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Quicksand', 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --tracking-tight: -0.02em;
+  --tracking-label: 0.08em;
 
-  /* Timing */
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --ease-soft: cubic-bezier(0.33, 1, 0.68, 1);
+  /* Playful Bouncy Timing */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.6, 0.64, 1);
+  --ease-soft: cubic-bezier(0.25, 1, 0.5, 1);
 
   /* Native shell layout */
   --content-width: 520px;
-  --tabbar-height: 72px;
+  --tabbar-height: 74px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
 }
