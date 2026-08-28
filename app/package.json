@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "build": "vite build",
     "build:native": "tsc --noEmit && vite build --mode native",
     "native:sync": "pnpm build:native && cap sync",
     "native:ios": "pnpm native:sync && cap open ios",
