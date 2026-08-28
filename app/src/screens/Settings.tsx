@@ -139,6 +139,8 @@ export function Settings() {
   const [hasOpenAiKey, setHasOpenAiKey] = useState(false)
   const [hasAnthropicKey, setHasAnthropicKey] = useState(false)
   const [hasGeminiKey, setHasGeminiKey] = useState(false)
+  const [geminiKeyInput, setGeminiKeyInput] = useState('')
+  const [keySaveMessage, setKeySaveMessage] = useState<string | null>(null)
   const [vaultLabel, setVaultLabel] = useState(isNative ? 'Checking…' : 'Session memory')
   const [biometrics, setBiometrics] = useState<BiometricStatus | null>(null)
   const [health, setHealth] = useState<HealthPlatformStatus | null>(null)
@@ -520,6 +522,20 @@ export function Settings() {
           ? 'Anthropic credential removed from this device. Revoke it in the Anthropic console to invalidate it everywhere.'
           : 'OpenAI key removed from secure storage.',
     )
+  }
+
+  async function saveDirectGeminiKey() {
+    const key = geminiKeyInput.trim()
+    if (!key) {
+      setKeySaveMessage('Please enter an API key.')
+      return
+    }
+    await setSecureSecret(SECURE_SECRET_KEYS.geminiApiKey, key)
+    await setSetting(SK.aiProvider, 'gemini')
+    setHasGeminiKey(true)
+    setGeminiKeyInput('')
+    setKeySaveMessage('Google Gemini key saved securely! ✨')
+    setTimeout(() => setKeySaveMessage(null), 4000)
   }
 
   async function enableBackup() {
@@ -1053,14 +1069,78 @@ export function Settings() {
         </div>
       </div>
 
-      <Section title="AI assistant">
+      <Section title="AI companion &amp; Gemini key">
+        <div style={{ padding: '14px 0 10px' }}>
+          <label htmlFor="settings-gemini-key" style={{ display: 'block', fontWeight: 700, fontSize: '0.9rem', marginBottom: 4 }}>
+            Google Gemini API Key ✨
+          </label>
+          <p style={{ fontSize: '0.8rem', color: 'var(--hk-muted, #71717a)', marginBottom: 10, lineHeight: 1.4 }}>
+            Paste your Gemini API key below. It stays encrypted on this device and powers your companion.
+          </p>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input
+              id="settings-gemini-key"
+              type="password"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder={hasGeminiKey ? 'Saved securely · paste new key to replace' : 'AIzaSy…'}
+              value={geminiKeyInput}
+              onChange={(e) => setGeminiKeyInput(e.target.value)}
+              style={{
+                flex: 1,
+                padding: '10px 12px',
+                borderRadius: 12,
+                border: '1.5px solid var(--hk-pink-border, #fbcfe8)',
+                background: 'var(--hk-card-bg, #fff)',
+                color: 'inherit',
+                fontSize: '0.9rem',
+                outline: 'none',
+              }}
+            />
+            <button
+              type="button"
+              onClick={saveDirectGeminiKey}
+              style={{
+                padding: '10px 16px',
+                borderRadius: 12,
+                border: 'none',
+                background: 'linear-gradient(135deg, #ff2e63 0%, #ff69b4 100%)',
+                color: '#fff',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(255, 46, 99, 0.3)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Save Key ✨
+            </button>
+          </div>
+          {keySaveMessage && (
+            <div style={{ marginTop: 8, fontSize: '0.85rem', color: 'var(--hk-hot-pink, #ff2e63)', fontWeight: 700 }}>
+              {keySaveMessage}
+            </div>
+          )}
+          <div style={{ marginTop: 8, fontSize: '0.8rem', color: 'var(--hk-muted, #71717a)' }}>
+            Need a key? Get one free at{' '}
+            <a
+              href="https://aistudio.google.com/app/apikey"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'var(--hk-red, #ff2e63)', textDecoration: 'underline', fontWeight: 700 }}
+            >
+              Google AI Studio ↗
+            </a>
+          </div>
+        </div>
+
         <button className="setting-row" onClick={() => setAssistantOpen(true)}>
-          <span>Open Ruby AI</span>
+          <span>Open Ruby AI Companion</span>
           <span className="muted">
             {s.provider === 'gemini'
               ? hasGeminiKey
                 ? 'Gemini connected ›'
-                : 'add Gemini key ›'
+                : 'open chat ›'
               : s.provider === 'anthropic'
                 ? hasAnthropicKey
                   ? 'Anthropic connected ›'

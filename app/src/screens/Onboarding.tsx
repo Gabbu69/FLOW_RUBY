@@ -19,7 +19,9 @@ import {
 import {
   ANTHROPIC_MODELS,
   DEFAULT_ANTHROPIC_MODEL,
+  DEFAULT_GEMINI_MODEL,
   DEFAULT_OPENAI_MODEL,
+  GEMINI_MODELS,
   type AssistantProvider,
 } from '../lib/assistant'
 import { localToday } from '../lib/dates'
@@ -440,9 +442,9 @@ function recentCycleLength(startsNewestFirst: string[]): number | undefined {
 export function Onboarding({ onDone }: { onDone: () => void }) {
   const [current, setCurrent] = useState<StepId>('welcome')
   const [draft, setDraft] = useState<Draft>(DEFAULT_DRAFT)
-  const [provider, setProvider] = useState<AssistantProvider>('anthropic')
+  const [provider, setProvider] = useState<AssistantProvider>('gemini')
   const [apiKey, setApiKey] = useState('')
-  const [model, setModel] = useState(DEFAULT_ANTHROPIC_MODEL)
+  const [model, setModel] = useState(DEFAULT_GEMINI_MODEL)
   const [baseUrl, setBaseUrl] = useState('')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -533,7 +535,9 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   function chooseProvider(nextProvider: AssistantProvider) {
     setProvider(nextProvider)
     setBaseUrl('')
-    if (nextProvider === 'anthropic') {
+    if (nextProvider === 'gemini') {
+      setModel(DEFAULT_GEMINI_MODEL)
+    } else if (nextProvider === 'anthropic') {
       setModel(DEFAULT_ANTHROPIC_MODEL)
     } else {
       setModel(DEFAULT_OPENAI_MODEL)
@@ -720,7 +724,11 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
         setSetting(
           SK.aiModel,
           model.trim() ||
-            (provider === 'anthropic' ? DEFAULT_ANTHROPIC_MODEL : DEFAULT_OPENAI_MODEL),
+            (provider === 'gemini'
+              ? DEFAULT_GEMINI_MODEL
+              : provider === 'anthropic'
+                ? DEFAULT_ANTHROPIC_MODEL
+                : DEFAULT_OPENAI_MODEL),
         ),
         setSetting(SK.aiBaseUrl, baseUrl.trim()),
       ])
@@ -740,9 +748,11 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
 
       if (apiKey.trim()) {
         await setSecureSecret(
-          provider === 'anthropic'
-            ? SECURE_SECRET_KEYS.anthropicApiKey
-            : SECURE_SECRET_KEYS.openAiApiKey,
+          provider === 'gemini'
+            ? SECURE_SECRET_KEYS.geminiApiKey
+            : provider === 'anthropic'
+              ? SECURE_SECRET_KEYS.anthropicApiKey
+              : SECURE_SECRET_KEYS.openAiApiKey,
           apiKey.trim(),
         )
       }
@@ -1472,6 +1482,11 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
         />
         <div className="ai-provider-grid">
           <OptionCard
+            option={{ id: 'gemini', icon: '✨', label: 'Google Gemini', detail: 'Gemini 2.5 Flash / Pro. Free & fast key from Google AI Studio.' }}
+            selected={provider === 'gemini'}
+            onClick={() => chooseProvider('gemini')}
+          />
+          <OptionCard
             option={{ id: 'anthropic', icon: '✳', label: 'Anthropic', detail: 'An API key, or a token from `claude setup-token` to use your Claude subscription.' }}
             selected={provider === 'anthropic'}
             onClick={() => chooseProvider('anthropic')}
@@ -1482,7 +1497,48 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             onClick={() => chooseProvider('openai')}
           />
         </div>
-        {provider === 'anthropic' ? (
+        {provider === 'gemini' ? (
+          <div className="card ai-setup-card">
+            <div className="field">
+              <label htmlFor="gemini-key">Google Gemini API key</label>
+              <input
+                id="gemini-key"
+                type="password"
+                autoComplete="off"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                placeholder="AIzaSy…"
+                value={apiKey}
+                onChange={(event) => setApiKey(event.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="gemini-model">Model</label>
+              <select
+                id="gemini-model"
+                value={GEMINI_MODELS.some((entry) => entry.id === model) ? model : DEFAULT_GEMINI_MODEL}
+                onChange={(event) => setModel(event.target.value)}
+              >
+                {GEMINI_MODELS.map((entry) => (
+                  <option key={entry.id} value={entry.id}>{entry.label}</option>
+                ))}
+              </select>
+            </div>
+            <p className="microcopy">
+              Get a free API key at{' '}
+              <a
+                href="https://aistudio.google.com/app/apikey"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: 'var(--hk-red)', textDecoration: 'underline', fontWeight: 700 }}
+              >
+                Google AI Studio ↗
+              </a>
+              . Key stays encrypted on your device.
+            </p>
+          </div>
+        ) : provider === 'anthropic' ? (
           <div className="card ai-setup-card">
             <div className="field">
               <label htmlFor="anthropic-key">Anthropic API key or CLI token</label>
