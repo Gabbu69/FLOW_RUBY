@@ -1,4 +1,4 @@
-export type Tab = 'today' | 'insights' | 'graphs' | 'settings'
+export type Tab = 'today' | 'insights' | 'ai' | 'graphs' | 'settings'
 
 interface TabDef {
   id: Tab
@@ -29,6 +29,18 @@ const TABS: TabDef[] = [
         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
         <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" fill={active ? 'var(--rose-100)' : 'none'} />
         <path d="M12 6.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8.8-1.7z" fill={active ? 'var(--yellow-500)' : 'currentColor'} stroke="none" />
+      </svg>
+    ),
+  },
+  {
+    id: 'ai',
+    label: 'Ruby AI',
+    icon: (active) => (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? '2.4' : '2'} strokeLinecap="round" strokeLinejoin="round">
+        {/* Hello Kitty Bow / AI sparkle Icon */}
+        <path d="M12 3l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9-3.6 1.9.7-4-2.9-2.8 4-.6L12 3z" fill={active ? 'var(--hk-red)' : 'var(--rose-100)'} stroke={active ? 'var(--hk-red)' : 'currentColor'} />
+        <circle cx="6" cy="18" r="2" fill={active ? 'var(--hk-red)' : 'none'} stroke={active ? 'var(--hk-red)' : 'currentColor'} />
+        <circle cx="18" cy="18" r="2" fill={active ? 'var(--hk-red)' : 'none'} stroke={active ? 'var(--hk-red)' : 'currentColor'} />
       </svg>
     ),
   },

@@ -16,6 +16,7 @@ import { Insights } from './screens/Insights'
 import { Onboarding } from './screens/Onboarding'
 import { Settings } from './screens/Settings'
 import { Today } from './screens/Today'
+import { RubyMark } from './components/RubyMark'
 import { isNative } from './native/runtime'
 import {
   CycleReportScreen,
@@ -35,6 +36,7 @@ export default function App() {
     closeSheet,
     calendarOpen,
     assistantOpen,
+    setAssistantOpen,
     reportOpen,
     cycleReportOpen,
     setCycleReportOpen,
@@ -119,16 +121,29 @@ export default function App() {
       <main>
         {tab === 'today' && <Today />}
         {tab === 'insights' && <Insights />}
+        {tab === 'ai' && <AssistantScreen isTab />}
         {tab === 'graphs' && <Graphs />}
         {tab === 'settings' && <Settings />}
       </main>
       <TabBar active={tab} onChange={setTab} />
 
+      {!assistantOpen && tab !== 'ai' && (
+        <button
+          type="button"
+          className="hk-floating-ai-button"
+          onClick={() => setAssistantOpen(true)}
+          aria-label="Open Ruby AI Companion"
+        >
+          <RubyMark decorative size={24} />
+          <span className="hk-fab-label">Ask AI ✨</span>
+        </button>
+      )}
+
       {sheetDate && (
         <LogSheet date={sheetDate} initialFocus={sheetFocus ?? undefined} onClose={closeSheet} />
       )}
       {calendarOpen && <CalendarScreen />}
-      {assistantOpen && <AssistantScreen />}
+      {assistantOpen && tab !== 'ai' && <AssistantScreen />}
       {reportOpen && <DoctorReport />}
       {cycleReportOpen && <CycleReportScreen onBack={() => setCycleReportOpen(false)} />}
       {pregnancyDetailOpen && flags?.pregnancyDating && (

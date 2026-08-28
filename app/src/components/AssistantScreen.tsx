@@ -66,8 +66,9 @@ function vaultKeyFor(provider: AssistantProvider) {
     : SECURE_SECRET_KEYS.openAiApiKey
 }
 
-export function AssistantScreen() {
+export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
   const setAssistantOpen = useApp((state) => state.setAssistantOpen)
+  const setTab = useApp((state) => state.setTab)
   const [provider, setProvider] = useState<AssistantProvider>('gemini')
   const [model, setModel] = useState(DEFAULT_GEMINI_MODEL)
   const [baseUrl, setBaseUrl] = useState('')
@@ -277,12 +278,12 @@ export function AssistantScreen() {
   const sharedCount = Object.values(consent).filter(Boolean).length
 
   return (
-    <div className="overlay assistant-overlay" role="dialog" aria-modal="true" aria-label="AI Health Companion">
+    <div className={isTab ? 'page assistant-page' : 'overlay assistant-overlay'} role="dialog" aria-modal="true" aria-label="AI Health Companion">
       <header className="assistant-head">
         <button
           className="back-btn"
-          onClick={() => setAssistantOpen(false)}
-          aria-label="Close assistant"
+          onClick={() => (isTab ? setTab('today') : setAssistantOpen(false))}
+          aria-label={isTab ? 'Back to Today' : 'Close assistant'}
         >
           ‹
         </button>

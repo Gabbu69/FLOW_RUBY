@@ -705,3 +705,51 @@ input:checked + .switch-slider {
 .cute-bounce {
   animation: cute-bounce 2s ease-in-out infinite;
 }
+
+/* --- 15. Floating AI Chatbot Button (FAB) -------------------------------- */
+.hk-floating-ai-button {
+  position: fixed;
+  bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+  right: 18px;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px 8px 10px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #ffffff 0%, #fff0f5 100%);
+  border: 2px solid #ffb3c6;
+  box-shadow: 0 8px 24px rgba(255, 46, 99, 0.25), 0 2px 6px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: all 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: cute-bounce 3s ease-in-out infinite;
+}
+
+.hk-floating-ai-button:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 12px 28px rgba(255, 46, 99, 0.35);
+  border-color: var(--hk-red);
+}
+
+.hk-floating-ai-button:active {
+  transform: scale(0.96);
+}
+
+.hk-fab-label {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: var(--hk-red);
+  letter-spacing: 0.01em;
+}
+
+.page.assistant-page {
+  position: fixed;
+  inset: 0;
+  bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-canvas, #fffbfe);
+  overflow: hidden;
+}
