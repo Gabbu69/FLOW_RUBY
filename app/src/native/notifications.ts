@@ -11,12 +11,32 @@ import {
   type ReminderPlan,
 } from '../engine/reminders'
 import { isNative } from './runtime'
+import { addDays } from '../engine/cycle'
+import { localToday } from '../lib/dates'
+import {
+  localDateTime,
+  pillDoseDeadline,
+  type PillDoseLog,
+  type PillSchedule,
+} from '../db/pillTracker'
 
 const DAILY_REMINDER_ID = 10_001
 const CHANNEL_ID = 'lunara-gentle-reminders'
 const REMINDER_ACTION_TYPE = 'lunara-local-reminder'
 const REMINDER_ENGINE_MARKER = 'lunara-reminder-engine-v1'
 const IOS_PENDING_REQUEST_LIMIT = 64
+const PILL_REMINDER_MARKER = 'ruby-pill-tracker-v1'
+const PILL_REMINDER_DAYS = 14
+const webPillTimers = new Map<string, number>()
+
+function stableNotificationId(value: string): number {
+  let hash = 2_166_136_261
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index)
+    hash = Math.imul(hash, 16_777_619)
+  }
+  return 200_000_000 + (Math.abs(hash) % 1_700_000_000)
+}
 
 async function ensureChannel(): Promise<void> {
   await LocalNotifications.createChannel({
@@ -197,4 +217,102 @@ export async function listenForReminderActions(
       route: String(extra.route ?? 'today'),
     })
   })
+}
+
+export async function requestPillReminderPermission(): Promise<'granted' | 'denied'> {
+  if (isNative) {
+    return (await notificationPermission(true)) === 'granted' ? 'granted' : 'denied'
+  }
+  if (!('Notification' in window)) return 'denied'
+  if (Notification.permission === 'granted') return 'granted'
+  return (await Notification.requestPermission()) === 'granted' ? 'granted' : 'denied'
+}
+
+async function cancelPillReminders(): Promise<void> {
+  for (const timer of webPillTimers.values()) window.clearTimeout(timer)
+  webPillTimers.clear()
+  if (!isNative) return
+  const pending = await LocalNotifications.getPending()
+  const managed = pending.notifications
+    .filter((notification) => notification.extra?.manager === PILL_REMINDER_MARKER)
+    .map(({ id }) => ({ id }))
+  if (managed.length) await LocalNotifications.cancel({ notifications: managed })
+}
+
+function pillNotification(
+  schedule: PillSchedule,
+  date: string,
+  kind: 'due' | 'follow-up',
+): LocalNotificationSchema {
+  const at = kind === 'due'
+    ? localDateTime(date, schedule.scheduledTime)
+    : pillDoseDeadline(schedule, date)
+  return {
+    id: stableNotificationId(`${PILL_REMINDER_MARKER}:${kind}:${date}`),
+    title: kind === 'due' ? 'Ruby routine reminder' : 'Ruby check-in',
+    body: kind === 'due'
+      ? 'It is time for the private routine you scheduled.'
+      : 'Your scheduled routine is still waiting for a check-in.',
+    channelId: CHANNEL_ID,
+    schedule: { at, allowWhileIdle: true },
+    extra: {
+      manager: PILL_REMINDER_MARKER,
+      route: 'today',
+      scheduleId: schedule.id,
+      date,
+      kind,
+    },
+  }
+}
+
+/**
+ * Materialize private pill alerts. A follow-up is omitted as soon as the dose
+ * is marked taken. Web alerts work while Ruby is open; native alerts are
+ * scheduled with the operating system and work while the app is closed.
+ */
+export async function syncPillReminders(
+  schedule: PillSchedule,
+  logs: readonly PillDoseLog[],
+): Promise<void> {
+  await cancelPillReminders()
+  if (!schedule.reminderEnabled) return
+
+  const takenDates = new Set(
+    logs.filter((log) => log.status === 'taken').map((log) => log.date),
+  )
+  const now = Date.now()
+  const notifications: LocalNotificationSchema[] = []
+  const today = localToday()
+
+  for (let offset = 0; offset < PILL_REMINDER_DAYS; offset += 1) {
+    const date = addDays(today, offset)
+    if (date < schedule.startDate || takenDates.has(date)) continue
+    const due = pillNotification(schedule, date, 'due')
+    const followUp = pillNotification(schedule, date, 'follow-up')
+    if ((due.schedule?.at?.getTime() ?? 0) > now) notifications.push(due)
+    if ((followUp.schedule?.at?.getTime() ?? 0) > now) notifications.push(followUp)
+  }
+
+  if (isNative) {
+    if ((await notificationPermission(false)) !== 'granted') return
+    await ensureChannel()
+    if (notifications.length) await LocalNotifications.schedule({ notifications })
+    return
+  }
+
+  if (!('Notification' in window) || Notification.permission !== 'granted') return
+  for (const notification of notifications) {
+    const at = notification.schedule?.at?.getTime()
+    if (!at) continue
+    const delay = at - now
+    if (delay > 2_147_483_647) continue
+    const key = String(notification.id)
+    webPillTimers.set(
+      key,
+      window.setTimeout(() => {
+        new Notification(notification.title ?? 'Ruby', { body: notification.body })
+        webPillTimers.delete(key)
+      }, delay),
+    )
+  }
 }

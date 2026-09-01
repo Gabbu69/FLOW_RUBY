@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState } from 'react'
 import { DateStrip } from '../components/DateStrip'
 import { RubyMark } from '../components/RubyMark'
+import { PillTrackerCard } from '../components/PillTrackerCard'
 import { PREGNANCY_WEEKS } from '../content/pregnancyWeeks'
 import {
   db,
@@ -443,6 +444,8 @@ export function Today() {
           </div>
         )}
 
+        <PillTrackerCard selectedDate={selectedDate} />
+
         <section className="today-quick-actions" aria-label={`Log for ${compactDate(selectedDate)}`}>
           <button
             type="button"
@@ -748,6 +751,8 @@ export function Today() {
           <span aria-hidden="true">›</span>
         </button>
       </section>
+
+      <PillTrackerCard selectedDate={selectedDate} />
 
       <section className="today-quick-actions" aria-label={`Log for ${compactDate(selectedDate)}`}>
         <button

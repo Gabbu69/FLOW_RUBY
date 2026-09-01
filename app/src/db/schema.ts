@@ -2,6 +2,7 @@ import Dexie, { type Table } from 'dexie'
 import { detectBbtShiftEstimates } from '../engine/cycle'
 import type { PregnancyDatingMethod } from '../engine/pregnancyDating'
 import type { MissedDoseEvent, RegimenRecord } from './regimen'
+import type { PillDoseLog, PillSchedule } from './pillTracker'
 
 export type Flow = 'light' | 'medium' | 'heavy' | 'clots'
 export type Discharge =
@@ -376,6 +377,10 @@ export class RubyDB extends Dexie {
    * queries stay cheap and survive log edits.
    */
   missedDoseEvents!: Table<MissedDoseEvent, string>
+  /** User-configured birth-control pill time and reminder preferences. */
+  pillSchedules!: Table<PillSchedule, string>
+  /** One durable adherence row per schedule and calendar day. */
+  pillDoseLogs!: Table<PillDoseLog, string>
 
   constructor() {
     super('ruby')
@@ -410,6 +415,17 @@ export class RubyDB extends Dexie {
       healthProfiles: 'id',
       regimenRecords: 'id, method, startDate, [method+startDate]',
       missedDoseEvents: 'id, regimenId, date, [regimenId+date]',
+    })
+    this.version(4).stores({
+      dailyLogs: 'date',
+      cycles: 'startDate',
+      settings: 'key',
+      contentBookmarks: 'slug',
+      healthProfiles: 'id',
+      regimenRecords: 'id, method, startDate, [method+startDate]',
+      missedDoseEvents: 'id, regimenId, date, [regimenId+date]',
+      pillSchedules: 'id, startDate',
+      pillDoseLogs: 'id, scheduleId, date, status, [scheduleId+date]',
     })
   }
 }

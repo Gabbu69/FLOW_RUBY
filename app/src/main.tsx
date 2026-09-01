@@ -4,7 +4,8 @@ import App from './App'
 import { StartupErrorBoundary } from './components/StartupErrorBoundary'
 import { initializeNativeRuntime } from './native/runtime'
 import { Onboarding } from './screens/Onboarding'
-import { installSyncHooks, pullFromSupabase } from './db/supabaseSync'
+import { Today } from './screens/Today'
+import { installSyncHooks, pullFromSupabase, pushAllToSupabase } from './db/supabaseSync'
 import './styles/base.css'
 import './styles/app.css'
 import './styles/health-import.css'
@@ -25,13 +26,18 @@ void initializeNativeRuntime()
 installSyncHooks()
 
 // Hydrate local DB from Supabase on startup (only fills empty tables)
-void pullFromSupabase().catch((err: unknown) => {
-  console.warn('[Ruby] Initial cloud sync failed — continuing offline', err)
-})
+void pullFromSupabase()
+  .then(() => pushAllToSupabase())
+  .catch((err: unknown) => {
+    console.warn('[Ruby] Initial cloud sync failed — continuing offline', err)
+  })
 
 const onboardingPreview =
   import.meta.env.DEV &&
   new URLSearchParams(window.location.search).get('preview') === 'onboarding'
+const pillTrackerPreview =
+  import.meta.env.DEV &&
+  new URLSearchParams(window.location.search).get('preview') === 'pill-tracker'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -42,6 +48,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             window.location.assign('/')
           }}
         />
+      ) : pillTrackerPreview ? (
+        <main>
+          <Today />
+        </main>
       ) : (
         <App />
       )}

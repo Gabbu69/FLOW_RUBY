@@ -11,6 +11,7 @@ Ruby ships as a modern web application and native iOS/Android mobile app powered
 - 🎀 **Delightful Hello Kitty Aesthetic**: Custom SVG red bow motifs, sweet pastel pinks, bubbly cards, 3D candy buttons, rounded typography (`Quicksand` & `Nunito`), and cute micro-interactions.
 - 🔒 **Privacy First & Zero-Tracking**: Core logs live on your device in Dexie (IndexedDB). No analytics trackers, no third-party ads, no paywalls.
 - ☁️ **Supabase Cloud Sync**: Transparent background syncing that mirrors every write into your cloud database without compromising offline capability.
+- 💊 **Daily Pill Tracker**: Save a birth-control pill schedule, record taken or missed doses, review a seven-day streak, and receive private due/missed check-in alerts.
 - ✨ **AI Health Companion**: Powered by **Google Gemini 2.5 Flash / Pro**, **Claude Opus / Sonnet**, or **OpenAI GPT-5**, with granular consent controls over which health categories travel with each message.
 - 📱 **Mobile-First & Native Ready**: Responsive touch controls, iOS/Android safe area support, haptic feedback, and local notifications.
 
@@ -73,6 +74,10 @@ To enable real-time cloud sync for your Ruby instance:
    VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
    ```
 4. All daily logs, cycle data, bookmarks, and health profiles will automatically sync both ways.
+
+The SQL file is safe to run again on an existing Ruby database. Re-run it after upgrading to add the pill tables and repair the regimen columns used by the sync client.
+
+> **Deployment note:** the included schema matches the project's existing single-tenant, publishable-key sync model. Do not point a public multi-user deployment at one shared database until Supabase Auth and owner-scoped RLS policies are added. Local IndexedDB persistence works without Supabase.
 
 ---
 

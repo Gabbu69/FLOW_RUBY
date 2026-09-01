@@ -65,6 +65,7 @@ import {
   clearSecureSecrets,
   deleteSecureSecret,
   getSecureSecret,
+  setSecureSecret,
   SECURE_SECRET_KEYS,
   secureVaultStatus,
 } from '../native/secureVault'

@@ -777,15 +777,21 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
       <Frame step={current} stepNumber={0} totalSteps={progressSteps.length}>
         <div className="onboarding-hero">
           <div className="ob-hero-art">
-            <Moonseed />
-            <span className="ob-hero-label">Built for private, local-first tracking</span>
+            <img
+              className="ob-kitty-mascot"
+              src="/kitty-mascot.png"
+              alt=""
+              aria-hidden="true"
+              loading="eager"
+            />
+            <span className="ob-hero-label">Private, personal, and made with care</span>
           </div>
           <div>
             <p className="eyebrow">Meet Ruby</p>
-            <h1>A clearer map of your changing body.</h1>
+            <h1>Your cycle care, made a little cuter.</h1>
             <p className="lead">
-              Start with what you know. Ruby will adapt its questions, show when an estimate is
-              uncertain, and keep core tracking on this device.
+              Track what matters, understand your patterns, and get gentle reminders without
+              giving up control of your private health history.
             </p>
           </div>
           <div className="ob-proof-row" aria-label="Ruby principles">

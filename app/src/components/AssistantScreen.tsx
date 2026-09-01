@@ -278,7 +278,13 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
   const sharedCount = Object.values(consent).filter(Boolean).length
 
   return (
-    <div className={isTab ? 'page assistant-page' : 'overlay assistant-overlay'} role="dialog" aria-modal="true" aria-label="AI Health Companion">
+    <div
+      className={isTab ? 'page assistant-page' : 'overlay assistant-overlay'}
+      role={isTab ? 'region' : 'dialog'}
+      aria-modal={isTab ? undefined : true}
+      aria-label="AI Health Companion"
+      aria-busy={loading}
+    >
       <header className="assistant-head">
         <button
           className="back-btn"

@@ -1,7 +1,6 @@
 import { supabase } from './supabaseClient'
 import { db } from './schema'
-import type { DailyLog, Cycle, Setting, ContentBookmark, HealthProfile } from './schema'
-import type { RegimenRecord, MissedDoseEvent } from './regimen'
+import type { Table } from 'dexie'
 
 /**
  * Supabase sync layer for Ruby.
@@ -22,9 +21,15 @@ const TABLE_MAP = {
   healthProfiles: 'health_profiles',
   regimenRecords: 'regimen_records',
   missedDoseEvents: 'missed_dose_events',
+  pillSchedules: 'pill_schedules',
+  pillDoseLogs: 'pill_dose_logs',
 } as const
 
 type DexieTableName = keyof typeof TABLE_MAP
+
+function dexieTable(table: DexieTableName): Table<Record<string, unknown>, string> {
+  return db[table] as unknown as Table<Record<string, unknown>, string>
+}
 
 // ─── Primary key field mapping ─────────────────────────────────────────
 const PK_MAP: Record<DexieTableName, string> = {
@@ -35,6 +40,8 @@ const PK_MAP: Record<DexieTableName, string> = {
   healthProfiles: 'id',
   regimenRecords: 'id',
   missedDoseEvents: 'id',
+  pillSchedules: 'id',
+  pillDoseLogs: 'id',
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────
@@ -110,12 +117,12 @@ export async function deleteRecord(
 /** Push all records from a local Dexie table to Supabase. */
 export async function pushTable(table: DexieTableName): Promise<void> {
   if (!supabase) return
-  const dexieTable = db[table]
-  const records = await dexieTable.toArray()
+  const tableStore = dexieTable(table)
+  const records = await tableStore.toArray()
   if (records.length === 0) return
 
   const supabaseTable = TABLE_MAP[table]
-  const snakeRecords = records.map((r) => toSnakeCase(r as Record<string, unknown>))
+  const snakeRecords = records.map(toSnakeCase)
 
   try {
     // Upsert in batches of 100
@@ -148,8 +155,7 @@ async function pullTable(table: DexieTableName): Promise<number> {
     if (!data || data.length === 0) return 0
 
     const camelRecords = data.map((r) => toCamelCase(r as Record<string, unknown>))
-    const dexieTable = db[table]
-    await dexieTable.bulkPut(camelRecords as never[])
+    await dexieTable(table).bulkPut(camelRecords)
     return data.length
   } catch (err) {
     console.warn(`[Ruby sync] pullTable ${supabaseTable} error:`, err)
@@ -174,10 +180,12 @@ export async function pullFromSupabase(): Promise<void> {
     'healthProfiles',
     'regimenRecords',
     'missedDoseEvents',
+    'pillSchedules',
+    'pillDoseLogs',
   ]
 
   for (const table of tables) {
-    const localCount = await db[table].count()
+    const localCount = await dexieTable(table).count()
     if (localCount === 0) {
       const pulled = await pullTable(table)
       if (pulled > 0) {
@@ -204,6 +212,8 @@ export async function pushAllToSupabase(): Promise<void> {
     'healthProfiles',
     'regimenRecords',
     'missedDoseEvents',
+    'pillSchedules',
+    'pillDoseLogs',
   ]
 
   for (const table of tables) {
@@ -223,17 +233,17 @@ export function installSyncHooks(): void {
 
   // Hook into each table's creating/updating/deleting
   const hookTable = (tableName: DexieTableName) => {
-    const table = db[tableName]
+    const table = dexieTable(tableName)
 
     table.hook('creating', function (_pkValue, obj) {
       // Fire-and-forget push to Supabase
-      pushRecord(tableName, obj as Record<string, unknown>).catch(() => {})
+      pushRecord(tableName, obj).catch(() => {})
     })
 
     table.hook('updating', function (modifications, _pkValue, obj) {
       // Merge modifications with existing object and push
       const merged = { ...obj, ...modifications }
-      pushRecord(tableName, merged as Record<string, unknown>).catch(() => {})
+      pushRecord(tableName, merged).catch(() => {})
     })
 
     table.hook('deleting', function (pkValue) {
@@ -250,6 +260,8 @@ export function installSyncHooks(): void {
   hookTable('healthProfiles')
   hookTable('regimenRecords')
   hookTable('missedDoseEvents')
+  hookTable('pillSchedules')
+  hookTable('pillDoseLogs')
 
   console.log('[Ruby sync] Dexie sync hooks installed')
 }

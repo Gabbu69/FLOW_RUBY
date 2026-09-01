@@ -81,8 +81,15 @@ CREATE TABLE IF NOT EXISTS regimen_records (
   dose TEXT,
   stop_reason TEXT,
   config JSONB,                                     -- MethodConfig
+  notes TEXT,
+  updated_at TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Repair older Ruby databases whose first regimen migration omitted fields
+-- already present in the app's RegimenRecord type.
+ALTER TABLE regimen_records ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE regimen_records ADD COLUMN IF NOT EXISTS updated_at TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_regimen_method_start ON regimen_records (method, start_date);
 
@@ -94,10 +101,47 @@ CREATE TABLE IF NOT EXISTS missed_dose_events (
   kind TEXT NOT NULL,                               -- 'late' | 'skipped'
   hours_late NUMERIC,
   notes TEXT,
+  recorded_at TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- The client writes recordedAt; keep created_at for older rows and add the
+-- matching column so upserts no longer fail with a missing-column error.
+ALTER TABLE missed_dose_events ADD COLUMN IF NOT EXISTS recorded_at TEXT;
+
 CREATE INDEX IF NOT EXISTS idx_missed_dose_regimen_date ON missed_dose_events (regimen_id, date);
+
+-- 8. pill_schedules — the user's active daily birth-control pill routine
+CREATE TABLE IF NOT EXISTS pill_schedules (
+  id TEXT PRIMARY KEY,
+  product TEXT NOT NULL,
+  dose TEXT,
+  scheduled_time TEXT NOT NULL,                    -- local HH:MM
+  grace_minutes INTEGER NOT NULL DEFAULT 60 CHECK (grace_minutes BETWEEN 5 AND 720),
+  reminder_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  start_date TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+-- 9. pill_dose_logs — one durable adherence row per calendar day
+CREATE TABLE IF NOT EXISTS pill_dose_logs (
+  id TEXT PRIMARY KEY,                              -- '{scheduleId}:{date}'
+  schedule_id TEXT NOT NULL,
+  date TEXT NOT NULL,
+  scheduled_for TIMESTAMPTZ NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('pending', 'taken', 'missed', 'skipped')),
+  taken_at TIMESTAMPTZ,
+  notes TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  CONSTRAINT pill_dose_logs_schedule_date_unique UNIQUE (schedule_id, date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pill_dose_schedule_date
+  ON pill_dose_logs (schedule_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_pill_dose_status_date
+  ON pill_dose_logs (status, date DESC);
 
 -- ============================================================
 -- Enable Row Level Security (optional — uncomment if needed)
@@ -110,3 +154,5 @@ CREATE INDEX IF NOT EXISTS idx_missed_dose_regimen_date ON missed_dose_events (r
 -- ALTER TABLE health_profiles ENABLE ROW LEVEL SECURITY;
 -- ALTER TABLE regimen_records ENABLE ROW LEVEL SECURITY;
 -- ALTER TABLE missed_dose_events ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE pill_schedules ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE pill_dose_logs ENABLE ROW LEVEL SECURITY;
