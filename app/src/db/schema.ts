@@ -360,6 +360,27 @@ export interface ContentBookmark {
   savedAt: string
 }
 
+export type AssistantMessageStatus = 'streaming' | 'complete' | 'stopped' | 'error'
+
+/** A local-only AI conversation. Provider credentials are never stored here. */
+export interface AssistantConversationRecord {
+  id: string
+  createdAt: string
+  updatedAt: string
+  provider: 'anthropic' | 'openai' | 'gemini'
+  model: string
+}
+
+/** Durable message text and generation state for offline chat recovery. */
+export interface AssistantMessageRecord {
+  id: string
+  conversationId: string
+  role: 'user' | 'assistant'
+  content: string
+  createdAt: string
+  status: AssistantMessageStatus
+}
+
 export class RubyDB extends Dexie {
   dailyLogs!: Table<DailyLog, string>
   cycles!: Table<Cycle, string>
@@ -381,6 +402,9 @@ export class RubyDB extends Dexie {
   pillSchedules!: Table<PillSchedule, string>
   /** One durable adherence row per schedule and calendar day. */
   pillDoseLogs!: Table<PillDoseLog, string>
+  /** Local-only assistant history; intentionally excluded from cloud sync. */
+  assistantConversations!: Table<AssistantConversationRecord, string>
+  assistantMessages!: Table<AssistantMessageRecord, string>
 
   constructor() {
     super('ruby')
@@ -426,6 +450,19 @@ export class RubyDB extends Dexie {
       missedDoseEvents: 'id, regimenId, date, [regimenId+date]',
       pillSchedules: 'id, startDate',
       pillDoseLogs: 'id, scheduleId, date, status, [scheduleId+date]',
+    })
+    this.version(5).stores({
+      dailyLogs: 'date',
+      cycles: 'startDate',
+      settings: 'key',
+      contentBookmarks: 'slug',
+      healthProfiles: 'id',
+      regimenRecords: 'id, method, startDate, [method+startDate]',
+      missedDoseEvents: 'id, regimenId, date, [regimenId+date]',
+      pillSchedules: 'id, startDate',
+      pillDoseLogs: 'id, scheduleId, date, status, [scheduleId+date]',
+      assistantConversations: 'id, updatedAt',
+      assistantMessages: 'id, conversationId, createdAt, status, [conversationId+createdAt]',
     })
   }
 }
@@ -686,6 +723,8 @@ export const SK = {
   aiModel: 'aiModel',
   aiBaseUrl: 'aiBaseUrl',
   aiConsent: 'aiConsent',
+  /** Current local-only AI conversation. Older conversations remain durable. */
+  aiConversationId: 'aiConversationId',
   /** 'strict' (zero data retention) or 'standard' (no-training only). */
   aiPrivacyTier: 'aiPrivacyTier',
   backupEndpoint: 'backupEndpoint',

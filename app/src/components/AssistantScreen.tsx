@@ -1,5 +1,11 @@
 import { generateId } from 'ai'
 import { useEffect, useRef, useState } from 'react'
+import {
+  createAssistantConversation,
+  deleteAssistantMessages,
+  loadAssistantChat,
+  saveAssistantMessage,
+} from '../db/assistantChat'
 import { getSetting, removeSetting, setSetting, SK } from '../db/schema'
 import {
   anthropicCredentialKind,
@@ -62,7 +68,7 @@ const CHAT_SESSION_KEY = 'ruby:assistant:session:v1'
 interface ChatEntry extends ChatMessage {
   id: string
   createdAt: string
-  status?: 'streaming' | 'complete' | 'stopped'
+  status: 'streaming' | 'complete' | 'stopped' | 'error'
 }
 
 function loadChatSession(): ChatEntry[] {
@@ -86,7 +92,10 @@ function loadChatSession(): ChatEntry[] {
         role: entry.role,
         content: entry.content,
         createdAt: typeof entry.createdAt === 'string' ? entry.createdAt : new Date().toISOString(),
-        status: entry.status === 'stopped' ? 'stopped' : 'complete',
+        status:
+          entry.status === 'stopped' || entry.status === 'error'
+            ? entry.status
+            : 'complete',
       }))
   } catch {
     return []
@@ -132,7 +141,8 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
   const [keyInput, setKeyInput] = useState('')
   const [consent, setConsent] = useState<AssistantConsent>(NO_ASSISTANT_CONSENT)
   const [vaultLabel, setVaultLabel] = useState('secure storage')
-  const [messages, setMessages] = useState<ChatEntry[]>(loadChatSession)
+  const [messages, setMessages] = useState<ChatEntry[]>([])
+  const [conversationId, setConversationId] = useState<string | null>(null)
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -181,9 +191,18 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
           : nextProvider === 'anthropic'
             ? savedAnthropicKey
             : legacyKey || savedOpenAiKey
+      const nextModel = resolveSavedModel(nextProvider, savedModel)
+      const durableChat = await loadAssistantChat(nextProvider, nextModel, loadChatSession())
       if (!alive) return
       setProvider(nextProvider)
-      setModel(resolveSavedModel(nextProvider, savedModel))
+      setModel(nextModel)
+      setConversationId(durableChat.conversationId)
+      setMessages(durableChat.messages)
+      try {
+        sessionStorage.removeItem(CHAT_SESSION_KEY)
+      } catch {
+        // IndexedDB is now canonical; an unavailable legacy cache is harmless.
+      }
       setBaseUrl(savedBaseUrl || '')
       setConsent(parseAssistantConsent(savedConsent))
       setApiKey(key)
@@ -208,14 +227,6 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
   useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: 'smooth' })
   }, [messages, busy])
-
-  useEffect(() => {
-    try {
-      sessionStorage.setItem(CHAT_SESSION_KEY, JSON.stringify(messages.slice(-40)))
-    } catch {
-      // A chat still works if private browsing blocks session storage.
-    }
-  }, [messages])
 
   useEffect(() => () => abortController.current?.abort(), [])
 
@@ -337,14 +348,40 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
     await setSetting(SK.aiConsent, JSON.stringify(next))
   }
 
-  async function runAssistantRequest(next: ChatEntry[]) {
+  async function ensureConversation(): Promise<string> {
+    if (conversationId) return conversationId
+    const id = await createAssistantConversation(provider, model)
+    setConversationId(id)
+    return id
+  }
+
+  async function runAssistantRequest(next: ChatEntry[], chatId: string) {
     if (!apiKey) return
 
     const controller = new AbortController()
     abortController.current = controller
-    const assistantId = generateId()
+    const assistantEntry: ChatEntry = {
+      id: generateId(),
+      role: 'assistant',
+      content: '',
+      createdAt: new Date().toISOString(),
+      status: 'streaming',
+    }
     let reply = ''
-    let replyStarted = false
+    let persistenceError: unknown
+    let pendingSave = Promise.resolve()
+
+    try {
+      await saveAssistantMessage(chatId, assistantEntry, provider, model)
+      setMessages([...next, assistantEntry])
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? `Ruby could not save this reply offline: ${reason.message}`
+          : 'Ruby could not save this reply offline.',
+      )
+      return
+    }
 
     setBusy(true)
     setError(null)
@@ -355,41 +392,52 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
         signal: controller.signal,
         onDelta(delta) {
           reply += delta
-          if (!replyStarted) {
-            replyStarted = true
-            setMessages([
-              ...next,
-              {
-                id: assistantId,
-                role: 'assistant',
-                content: reply,
-                createdAt: new Date().toISOString(),
-                status: 'streaming',
-              },
-            ])
-            return
-          }
+          const streamedEntry = { ...assistantEntry, content: reply }
           setMessages((current) =>
             current.map((entry) =>
-              entry.id === assistantId ? { ...entry, content: reply } : entry,
+              entry.id === assistantEntry.id ? streamedEntry : entry,
             ),
           )
+          pendingSave = pendingSave
+            .then(() => saveAssistantMessage(chatId, streamedEntry, provider, model))
+            .catch((reason: unknown) => {
+              persistenceError = persistenceError ?? reason
+              controller.abort()
+            })
         },
       })
+      await pendingSave
+      if (persistenceError) throw persistenceError
+      const completedEntry: ChatEntry = {
+        ...assistantEntry,
+        content: reply,
+        status: 'complete',
+      }
+      await saveAssistantMessage(chatId, completedEntry, provider, model)
       setMessages((current) =>
         current.map((entry) =>
-          entry.id === assistantId ? { ...entry, status: 'complete' } : entry,
+          entry.id === assistantEntry.id ? completedEntry : entry,
         ),
       )
     } catch (reason) {
+      await pendingSave
       const stopped = controller.signal.aborted || (reason instanceof DOMException && reason.name === 'AbortError')
-      if (stopped) {
-        setMessages((current) =>
-          current.map((entry) =>
-            entry.id === assistantId ? { ...entry, status: 'stopped' } : entry,
-          ),
-        )
-      } else {
+      const failedEntry: ChatEntry = {
+        ...assistantEntry,
+        content: reply,
+        status: stopped && !persistenceError ? 'stopped' : 'error',
+      }
+      setMessages((current) =>
+        current.map((entry) =>
+          entry.id === assistantEntry.id ? failedEntry : entry,
+        ),
+      )
+      if (!persistenceError) {
+        await saveAssistantMessage(chatId, failedEntry, provider, model).catch(() => undefined)
+      }
+      if (persistenceError) {
+        setError('The response stopped because Ruby could not save it safely for offline use.')
+      } else if (!stopped) {
         setError(reason instanceof Error ? reason.message : 'The assistant could not reply.')
       }
     } finally {
@@ -413,33 +461,51 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
       return
     }
 
-    const next: ChatEntry[] = [
-      ...messages,
-      {
-        id: generateId(),
-        role: 'user',
-        content: text,
-        createdAt: new Date().toISOString(),
-        status: 'complete',
-      },
-    ]
+    const userEntry: ChatEntry = {
+      id: generateId(),
+      role: 'user',
+      content: text,
+      createdAt: new Date().toISOString(),
+      status: 'complete',
+    }
+    let chatId: string
+    try {
+      chatId = await ensureConversation()
+      await saveAssistantMessage(chatId, userEntry, provider, model)
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? `Ruby could not save your message offline: ${reason.message}`
+          : 'Ruby could not save your message offline.',
+      )
+      return
+    }
+    const next: ChatEntry[] = [...messages, userEntry]
     setMessages(next)
     setInput('')
     const safetyIntercept = screenAssistantUrgency(text)
     if (safetyIntercept) {
-      setMessages([
-        ...next,
-        {
-          id: generateId(),
-          role: 'assistant',
-          content: safetyIntercept.response,
-          createdAt: new Date().toISOString(),
-          status: 'complete',
-        },
-      ])
+      const safetyEntry: ChatEntry = {
+        id: generateId(),
+        role: 'assistant',
+        content: safetyIntercept.response,
+        createdAt: new Date().toISOString(),
+        status: 'complete',
+      }
+      try {
+        await saveAssistantMessage(chatId, safetyEntry, provider, model)
+      } catch (reason) {
+        setError(
+          reason instanceof Error
+            ? `Ruby could not save its safety response offline: ${reason.message}`
+            : 'Ruby could not save its safety response offline.',
+        )
+        return
+      }
+      setMessages([...next, safetyEntry])
       return
     }
-    await runAssistantRequest(next)
+    await runAssistantRequest(next, chatId)
   }
 
   function stopResponse() {
@@ -457,17 +523,29 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
     }
     if (lastUserIndex < 0) return
     const next = messages.slice(0, lastUserIndex + 1)
-    setMessages(next)
-    await runAssistantRequest(next)
+    try {
+      const removedIds = messages.slice(lastUserIndex + 1).map((entry) => entry.id)
+      const chatId = await ensureConversation()
+      await deleteAssistantMessages(removedIds)
+      setMessages(next)
+      await runAssistantRequest(next, chatId)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Could not prepare the saved message for retry.')
+    }
   }
 
-  function newChat() {
+  async function newChat() {
     abortController.current?.abort()
-    setMessages([])
-    setInput('')
-    setError(null)
-    setNotice(null)
-    sessionStorage.removeItem(CHAT_SESSION_KEY)
+    try {
+      const id = await createAssistantConversation(provider, model)
+      setConversationId(id)
+      setMessages([])
+      setInput('')
+      setError(null)
+      setNotice('New offline conversation started.')
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Could not start a new conversation.')
+    }
   }
 
   const sharedCount = Object.values(consent).filter(Boolean).length
@@ -505,7 +583,8 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
           {messages.length > 0 && (
             <button
               className="assistant-new-chat-button"
-              onClick={newChat}
+              onClick={() => void newChat()}
+              disabled={busy}
               aria-label="Start a new conversation"
               title="New chat"
             >
@@ -700,7 +779,8 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
               </>
             )}
             <p className="microcopy">
-              Storage: {vaultLabel}. Credentials never enter the cycle database or a backup.
+              Credential storage: {vaultLabel}. Chat history is saved separately in Ruby’s
+              local database so it remains available offline.
             </p>
             {apiKey && (
               <button className="text-button danger" onClick={removeKey}>
@@ -800,7 +880,7 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
                 <h2>Ask your Ruby companion</h2>
                 <p>
                   Get live, streaming answers about cycles, fertility, symptoms, or what to ask your doctor.
-                  This conversation stays in this browser tab and uses your configured {provider === 'gemini' ? 'Google Gemini' : provider === 'anthropic' ? 'Anthropic' : 'OpenAI'} key.
+                  This conversation is saved privately on this device for offline reading and uses your configured {provider === 'gemini' ? 'Google Gemini' : provider === 'anthropic' ? 'Anthropic' : 'OpenAI'} key when generating replies.
                 </p>
                 <div className="starters-list">
                   {STARTERS.map((text) => (
@@ -831,6 +911,7 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
                   {message.content}
                   {message.status === 'streaming' && <span className="streaming-cursor" aria-hidden="true" />}
                   {message.status === 'stopped' && <small className="message-status">Response stopped</small>}
+                  {message.status === 'error' && <small className="message-status is-error">Response failed · saved for retry</small>}
                 </div>
               </div>
             ))}

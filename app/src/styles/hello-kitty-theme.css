@@ -805,6 +805,11 @@ input:checked + .switch-slider {
   font-size: 1.3rem;
 }
 
+.assistant-new-chat-button:disabled {
+  opacity: 0.45;
+  cursor: wait;
+}
+
 .assistant-settings-button:hover,
 .assistant-new-chat-button:hover,
 .assistant-settings-button.is-active {
@@ -1001,6 +1006,10 @@ input:checked + .switch-slider {
   color: var(--hk-muted, #71717a);
   font-size: 0.7rem;
   font-weight: 700;
+}
+
+.message-status.is-error {
+  color: #b42347;
 }
 
 .assistant-empty-state {
