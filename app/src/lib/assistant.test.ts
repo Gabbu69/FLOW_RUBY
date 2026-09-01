@@ -4,7 +4,9 @@ import {
   ANTHROPIC_OAUTH_BETA,
   askAssistant,
   DEFAULT_ANTHROPIC_MODEL,
+  DEFAULT_GEMINI_MODEL,
   DEFAULT_OPENAI_MODEL,
+  streamAssistant,
   type ChatMessage,
 } from './assistant'
 
@@ -219,7 +221,7 @@ describe('assistant transport', () => {
     })
 
     const result = await askAssistant(
-      { provider: 'gemini', apiKey: 'AIzaSyTestKey123', model: 'gemini-2.5-flash' },
+      { provider: 'gemini', apiKey: 'AIzaSyTestKey123', model: DEFAULT_GEMINI_MODEL },
       history,
       { cycle: { cycleDay: 12 } },
       fetchMock,
@@ -227,7 +229,7 @@ describe('assistant transport', () => {
 
     expect(result).toBe('Gemini health explanation.')
     expect(String(capturedUrl)).toContain('generativelanguage.googleapis.com')
-    expect(String(capturedUrl)).toContain('gemini-2.5-flash')
+    expect(String(capturedUrl)).toContain(DEFAULT_GEMINI_MODEL)
     expect(String(capturedUrl)).toContain('key=AIzaSyTestKey123')
     const body = JSON.parse(String(capturedInit?.body))
     expect(body.systemInstruction.parts[0].text).toContain('"cycle":{"cycleDay":12}')
@@ -247,5 +249,101 @@ describe('assistant transport', () => {
         fetchMock,
       ),
     ).rejects.toThrow('Assistant request failed (500). Check the provider and model settings.')
+  })
+
+  it('streams OpenAI Responses API text deltas without storing the conversation', async () => {
+    let capturedInit: RequestInit | undefined
+    const fetchMock = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+      capturedInit = init
+      return new Response(
+        [
+          'event: response.output_text.delta',
+          'data: {"type":"response.output_text.delta","delta":"Cycles "}',
+          '',
+          'event: response.output_text.delta',
+          'data: {"type":"response.output_text.delta","delta":"can vary."}',
+          '',
+          'data: [DONE]',
+          '',
+        ].join('\n'),
+        { status: 200, headers: { 'content-type': 'text/event-stream' } },
+      )
+    })
+    const deltas: string[] = []
+
+    const result = await streamAssistant(
+      { provider: 'openai', apiKey: 'test-key', model: DEFAULT_OPENAI_MODEL },
+      history,
+      {},
+      { onDelta: (delta) => deltas.push(delta) },
+      fetchMock,
+    )
+
+    expect(result).toBe('Cycles can vary.')
+    expect(deltas).toEqual(['Cycles ', 'can vary.'])
+    expect(headerOf(capturedInit, 'accept')).toBe('text/event-stream')
+    const body = JSON.parse(String(capturedInit?.body))
+    expect(body.stream).toBe(true)
+    expect(body.store).toBe(false)
+  })
+
+  it('streams Gemini text while excluding hidden thought parts', async () => {
+    const fetchMock = vi.fn(async (url: RequestInfo | URL) => {
+      expect(String(url)).toContain(':streamGenerateContent?alt=sse')
+      return new Response(
+        [
+          'data: {"candidates":[{"content":{"parts":[{"text":"internal","thought":true},{"text":"A helpful "}]}}]}',
+          '',
+          'data: {"candidates":[{"content":{"parts":[{"text":"answer."}]},"finishReason":"STOP"}]}',
+          '',
+        ].join('\n'),
+        { status: 200, headers: { 'content-type': 'text/event-stream' } },
+      )
+    })
+    const deltas: string[] = []
+
+    const result = await streamAssistant(
+      { provider: 'gemini', apiKey: 'AIzaSyTestKey123', model: DEFAULT_GEMINI_MODEL },
+      history,
+      {},
+      { onDelta: (delta) => deltas.push(delta) },
+      fetchMock,
+    )
+
+    expect(result).toBe('A helpful answer.')
+    expect(deltas).toEqual(['A helpful ', 'answer.'])
+  })
+
+  it('streams Anthropic text with the correct browser-safe headers', async () => {
+    let capturedInit: RequestInit | undefined
+    const fetchMock = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+      capturedInit = init
+      return new Response(
+        [
+          'event: content_block_delta',
+          'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"Cycle "}}',
+          '',
+          'event: content_block_delta',
+          'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"guidance."}}',
+          '',
+        ].join('\n'),
+        { status: 200, headers: { 'content-type': 'text/event-stream' } },
+      )
+    })
+    const deltas: string[] = []
+
+    const result = await streamAssistant(
+      { provider: 'anthropic', apiKey: 'sk-ant-api03-key', model: DEFAULT_ANTHROPIC_MODEL },
+      history,
+      {},
+      { onDelta: (delta) => deltas.push(delta) },
+      fetchMock,
+    )
+
+    expect(result).toBe('Cycle guidance.')
+    expect(deltas).toEqual(['Cycle ', 'guidance.'])
+    expect(headerOf(capturedInit, 'x-api-key')).toBe('sk-ant-api03-key')
+    expect(headerOf(capturedInit, 'anthropic-dangerous-direct-browser-access')).toBe('true')
+    expect(JSON.parse(String(capturedInit?.body)).stream).toBe(true)
   })
 })

@@ -1,3 +1,4 @@
+import { generateId } from 'ai'
 import { useEffect, useRef, useState } from 'react'
 import { getSetting, removeSetting, setSetting, SK } from '../db/schema'
 import {
@@ -9,6 +10,8 @@ import {
   DEFAULT_GEMINI_MODEL,
   DEFAULT_OPENAI_MODEL,
   GEMINI_MODELS,
+  OPENAI_MODELS,
+  streamAssistant,
   type AssistantConfig,
   type AssistantProvider,
   type ChatMessage,
@@ -54,6 +57,59 @@ const STARTERS = [
   'Explain my fertile-window estimate.',
 ]
 
+const CHAT_SESSION_KEY = 'ruby:assistant:session:v1'
+
+interface ChatEntry extends ChatMessage {
+  id: string
+  createdAt: string
+  status?: 'streaming' | 'complete' | 'stopped'
+}
+
+function loadChatSession(): ChatEntry[] {
+  try {
+    const parsed = JSON.parse(sessionStorage.getItem(CHAT_SESSION_KEY) || '[]') as unknown
+    if (!Array.isArray(parsed)) return []
+    return parsed
+      .filter(
+        (entry): entry is Partial<ChatEntry> & Pick<ChatEntry, 'role' | 'content'> =>
+          Boolean(
+            entry &&
+              typeof entry === 'object' &&
+              ((entry as { role?: unknown }).role === 'user' ||
+                (entry as { role?: unknown }).role === 'assistant') &&
+              typeof (entry as { content?: unknown }).content === 'string',
+          ),
+      )
+      .slice(-40)
+      .map((entry) => ({
+        id: typeof entry.id === 'string' ? entry.id : generateId(),
+        role: entry.role,
+        content: entry.content,
+        createdAt: typeof entry.createdAt === 'string' ? entry.createdAt : new Date().toISOString(),
+        status: entry.status === 'stopped' ? 'stopped' : 'complete',
+      }))
+  } catch {
+    return []
+  }
+}
+
+function providerHistory(entries: ChatEntry[]): ChatMessage[] {
+  return entries
+    .filter((entry) => entry.content.trim())
+    .map(({ role, content }) => ({ role, content }))
+}
+
+function resolveSavedModel(provider: AssistantProvider, value: string | undefined): string {
+  if (!value) return defaultModel(provider)
+  if (provider === 'gemini') {
+    return GEMINI_MODELS.some((entry) => entry.id === value) ? value : DEFAULT_GEMINI_MODEL
+  }
+  if (provider === 'anthropic') {
+    return ANTHROPIC_MODELS.some((entry) => entry.id === value) ? value : DEFAULT_ANTHROPIC_MODEL
+  }
+  return value
+}
+
 function defaultModel(provider: AssistantProvider): string {
   if (provider === 'gemini') return DEFAULT_GEMINI_MODEL
   return provider === 'anthropic' ? DEFAULT_ANTHROPIC_MODEL : DEFAULT_OPENAI_MODEL
@@ -76,7 +132,7 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
   const [keyInput, setKeyInput] = useState('')
   const [consent, setConsent] = useState<AssistantConsent>(NO_ASSISTANT_CONSENT)
   const [vaultLabel, setVaultLabel] = useState('secure storage')
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [messages, setMessages] = useState<ChatEntry[]>(loadChatSession)
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -84,8 +140,11 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
   const [contextOpen, setContextOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [testing, setTesting] = useState(false)
+  const [connectionState, setConnectionState] = useState<'unknown' | 'connected'>('unknown')
   const scroller = useRef<HTMLDivElement>(null)
   const composerInput = useRef<HTMLTextAreaElement>(null)
+  const abortController = useRef<AbortController | null>(null)
 
   const credentialKind = apiKey ? anthropicCredentialKind(apiKey) : null
 
@@ -124,7 +183,7 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
             : legacyKey || savedOpenAiKey
       if (!alive) return
       setProvider(nextProvider)
-      setModel(savedModel || defaultModel(nextProvider))
+      setModel(resolveSavedModel(nextProvider, savedModel))
       setBaseUrl(savedBaseUrl || '')
       setConsent(parseAssistantConsent(savedConsent))
       setApiKey(key)
@@ -151,6 +210,16 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
   }, [messages, busy])
 
   useEffect(() => {
+    try {
+      sessionStorage.setItem(CHAT_SESSION_KEY, JSON.stringify(messages.slice(-40)))
+    } catch {
+      // A chat still works if private browsing blocks session storage.
+    }
+  }, [messages])
+
+  useEffect(() => () => abortController.current?.abort(), [])
+
+  useEffect(() => {
     const textarea = composerInput.current
     if (!textarea) return
     textarea.style.height = '0px'
@@ -164,7 +233,42 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
     setKeyInput('')
     setError(null)
     setNotice(null)
+    setConnectionState('unknown')
     setApiKey(await getSecureSecret(vaultKeyFor(next)))
+  }
+
+  function activeConfiguration(credential: string): AssistantConfig {
+    return {
+      provider,
+      apiKey: credential,
+      model: model.trim() || defaultModel(provider),
+      baseUrl: baseUrl.trim() || undefined,
+    }
+  }
+
+  async function testConnection() {
+    const credential = keyInput.trim() || apiKey
+    if (!credential) {
+      setError('Add a credential before testing the connection.')
+      return
+    }
+    setTesting(true)
+    setError(null)
+    setNotice(null)
+    setConnectionState('unknown')
+    try {
+      await askAssistant(
+        activeConfiguration(credential),
+        [{ role: 'user', content: 'Reply with exactly: Connected' }],
+        {},
+      )
+      setConnectionState('connected')
+      setNotice('Connection verified. Your model is ready to chat.')
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Could not connect to this provider.')
+    } finally {
+      setTesting(false)
+    }
   }
 
   async function saveConfiguration() {
@@ -217,6 +321,7 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
     await deleteSecureSecret(vaultKeyFor(provider))
     setApiKey(null)
     setKeyInput('')
+    setConnectionState('unknown')
     setNotice(
       provider === 'gemini'
         ? 'Google Gemini API key removed from secure storage.'
@@ -230,6 +335,67 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
     const next = { ...consent, [key]: !consent[key] }
     setConsent(next)
     await setSetting(SK.aiConsent, JSON.stringify(next))
+  }
+
+  async function runAssistantRequest(next: ChatEntry[]) {
+    if (!apiKey) return
+
+    const controller = new AbortController()
+    abortController.current = controller
+    const assistantId = generateId()
+    let reply = ''
+    let replyStarted = false
+
+    setBusy(true)
+    setError(null)
+    try {
+      const approvedContext = await collectApprovedAssistantContext(consent)
+      if (controller.signal.aborted) return
+      await streamAssistant(activeConfiguration(apiKey), providerHistory(next), approvedContext, {
+        signal: controller.signal,
+        onDelta(delta) {
+          reply += delta
+          if (!replyStarted) {
+            replyStarted = true
+            setMessages([
+              ...next,
+              {
+                id: assistantId,
+                role: 'assistant',
+                content: reply,
+                createdAt: new Date().toISOString(),
+                status: 'streaming',
+              },
+            ])
+            return
+          }
+          setMessages((current) =>
+            current.map((entry) =>
+              entry.id === assistantId ? { ...entry, content: reply } : entry,
+            ),
+          )
+        },
+      })
+      setMessages((current) =>
+        current.map((entry) =>
+          entry.id === assistantId ? { ...entry, status: 'complete' } : entry,
+        ),
+      )
+    } catch (reason) {
+      const stopped = controller.signal.aborted || (reason instanceof DOMException && reason.name === 'AbortError')
+      if (stopped) {
+        setMessages((current) =>
+          current.map((entry) =>
+            entry.id === assistantId ? { ...entry, status: 'stopped' } : entry,
+          ),
+        )
+      } else {
+        setError(reason instanceof Error ? reason.message : 'The assistant could not reply.')
+      }
+    } finally {
+      if (abortController.current === controller) abortController.current = null
+      setBusy(false)
+    }
   }
 
   async function send(textOverride?: string) {
@@ -247,35 +413,65 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
       return
     }
 
-    const next = [...messages, { role: 'user' as const, content: text }]
+    const next: ChatEntry[] = [
+      ...messages,
+      {
+        id: generateId(),
+        role: 'user',
+        content: text,
+        createdAt: new Date().toISOString(),
+        status: 'complete',
+      },
+    ]
     setMessages(next)
     setInput('')
     const safetyIntercept = screenAssistantUrgency(text)
     if (safetyIntercept) {
-      setMessages([...next, { role: 'assistant', content: safetyIntercept.response }])
+      setMessages([
+        ...next,
+        {
+          id: generateId(),
+          role: 'assistant',
+          content: safetyIntercept.response,
+          createdAt: new Date().toISOString(),
+          status: 'complete',
+        },
+      ])
       return
     }
+    await runAssistantRequest(next)
+  }
 
-    setBusy(true)
-    setError(null)
-    try {
-      const approvedContext = await collectApprovedAssistantContext(consent)
-      const config: AssistantConfig = {
-        provider,
-        apiKey,
-        model,
-        baseUrl: baseUrl.trim() || undefined,
+  function stopResponse() {
+    abortController.current?.abort()
+  }
+
+  async function retryLast() {
+    if (busy) return
+    let lastUserIndex = -1
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      if (messages[index].role === 'user') {
+        lastUserIndex = index
+        break
       }
-      const reply = await askAssistant(config, next, approvedContext)
-      setMessages([...next, { role: 'assistant', content: reply }])
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'The assistant could not reply.')
-    } finally {
-      setBusy(false)
     }
+    if (lastUserIndex < 0) return
+    const next = messages.slice(0, lastUserIndex + 1)
+    setMessages(next)
+    await runAssistantRequest(next)
+  }
+
+  function newChat() {
+    abortController.current?.abort()
+    setMessages([])
+    setInput('')
+    setError(null)
+    setNotice(null)
+    sessionStorage.removeItem(CHAT_SESSION_KEY)
   }
 
   const sharedCount = Object.values(consent).filter(Boolean).length
+  const hasStreamingReply = messages.some((message) => message.status === 'streaming')
 
   return (
     <div
@@ -305,14 +501,26 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
             {provider === 'gemini' ? 'Google Gemini' : provider === 'anthropic' ? 'Anthropic' : 'OpenAI'} · {model}
           </span>
         </div>
-        <button
-          className={`assistant-settings-button ${setupOpen ? 'is-active' : ''}`}
-          onClick={() => setSetupOpen((open) => !open)}
-          aria-label="AI connection settings"
-          aria-expanded={setupOpen}
-        >
-          ⚙
-        </button>
+        <div className="assistant-head-actions">
+          {messages.length > 0 && (
+            <button
+              className="assistant-new-chat-button"
+              onClick={newChat}
+              aria-label="Start a new conversation"
+              title="New chat"
+            >
+              ＋
+            </button>
+          )}
+          <button
+            className={`assistant-settings-button ${setupOpen ? 'is-active' : ''}`}
+            onClick={() => setSetupOpen((open) => !open)}
+            aria-label="AI connection settings"
+            aria-expanded={setupOpen}
+          >
+            ⚙
+          </button>
+        </div>
       </header>
 
       {setupOpen ? (
@@ -326,21 +534,21 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
                 onClick={() => void chooseProvider('gemini')}
               >
                 <span className="choice-icon">✨</span>
-                <span><strong>Google Gemini</strong><small>Gemini 2.5 Flash / Pro</small></span>
+                <span><strong>Google Gemini</strong><small>Gemini 3.6 / 3.5</small></span>
               </button>
               <button
                 className={`choice-card compact ${provider === 'anthropic' ? 'selected' : ''}`}
                 onClick={() => void chooseProvider('anthropic')}
               >
                 <span className="choice-icon">✳</span>
-                <span><strong>Anthropic</strong><small>Claude Opus / Sonnet / CLI</small></span>
+                <span><strong>Anthropic</strong><small>Claude Sonnet 5 / Opus 5</small></span>
               </button>
               <button
                 className={`choice-card compact ${provider === 'openai' ? 'selected' : ''}`}
                 onClick={() => void chooseProvider('openai')}
               >
                 <span className="choice-icon">✦</span>
-                <span><strong>OpenAI</strong><small>GPT-5 / Project Key</small></span>
+                <span><strong>OpenAI</strong><small>GPT-5.6 / Project key</small></span>
               </button>
             </div>
           </section>
@@ -463,11 +671,31 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
                   <label htmlFor="assistant-model">Model</label>
                   <input
                     id="assistant-model"
+                    list="openai-model-options"
                     autoCapitalize="none"
                     spellCheck={false}
                     value={model}
                     onChange={(event) => setModel(event.target.value)}
                   />
+                  <datalist id="openai-model-options">
+                    {OPENAI_MODELS.map((entry) => (
+                      <option key={entry.id} value={entry.id}>{entry.label}</option>
+                    ))}
+                  </datalist>
+                </div>
+                <div className="field">
+                  <label htmlFor="assistant-base-url">API base URL <span className="optional">optional</span></label>
+                  <input
+                    id="assistant-base-url"
+                    type="url"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    placeholder="https://api.openai.com"
+                    value={baseUrl}
+                    onChange={(event) => setBaseUrl(event.target.value)}
+                  />
+                  <small className="field-hint">Leave blank for OpenAI, or use an OpenAI-compatible endpoint.</small>
                 </div>
               </>
             )}
@@ -483,9 +711,23 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
 
           {notice && <div className="assistant-notice" role="status">{notice}</div>}
           {error && <div className="assistant-error" role="alert">{error}</div>}
-          <button className="cta btn-cta" onClick={saveConfiguration}>
-            Save connection ✨
-          </button>
+          <div className="ai-connection-actions">
+            <button
+              className="assistant-test-button"
+              onClick={() => void testConnection()}
+              disabled={testing || busy}
+            >
+              {testing ? 'Testing…' : 'Test connection'}
+            </button>
+            <button className="cta btn-cta" onClick={saveConfiguration}>
+              Save connection ✨
+            </button>
+          </div>
+          {connectionState === 'connected' && (
+            <div className="ai-connection-status" role="status">
+              <i aria-hidden="true" /> Connected to {model}
+            </div>
+          )}
         </div>
       ) : (
         <>
@@ -557,8 +799,8 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
                 <RubyMark decorative size={48} />
                 <h2>Ask your Ruby companion</h2>
                 <p>
-                  Questions about cycles, fertility, symptoms, or what to ask your doctor.
-                  Answers use your own configured {provider === 'gemini' ? 'Google Gemini' : provider === 'anthropic' ? 'Anthropic' : 'OpenAI'} key.
+                  Get live, streaming answers about cycles, fertility, symptoms, or what to ask your doctor.
+                  This conversation stays in this browser tab and uses your configured {provider === 'gemini' ? 'Google Gemini' : provider === 'anthropic' ? 'Anthropic' : 'OpenAI'} key.
                 </p>
                 <div className="starters-list">
                   {STARTERS.map((text) => (
@@ -575,21 +817,25 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
               </div>
             )}
 
-            {messages.map((message, index) => (
+            {messages.map((message) => (
               <div
-                key={index}
-                className={`message-bubble ${message.role === 'user' ? 'user' : 'assistant'}`}
+                key={message.id}
+                className={`message-bubble ${message.role === 'user' ? 'user' : 'assistant'} ${message.status === 'streaming' ? 'is-streaming' : ''}`}
               >
                 {message.role === 'assistant' && (
                   <span className="assistant-bubble-mark" aria-hidden="true">
                     <RubyMark decorative size={18} />
                   </span>
                 )}
-                <div className="message-content">{message.content}</div>
+                <div className="message-content">
+                  {message.content}
+                  {message.status === 'streaming' && <span className="streaming-cursor" aria-hidden="true" />}
+                  {message.status === 'stopped' && <small className="message-status">Response stopped</small>}
+                </div>
               </div>
             ))}
 
-            {busy && (
+            {busy && !hasStreamingReply && (
               <div className="message-bubble assistant thinking" aria-label="Thinking">
                 <span className="assistant-bubble-mark" aria-hidden="true">
                   <RubyMark decorative size={18} />
@@ -606,7 +852,12 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
           {error && (
             <div className="assistant-error-banner" role="alert">
               <span>{error}</span>
-              <button onClick={() => setSetupOpen(true)}>AI Settings</button>
+              <div className="assistant-error-actions">
+                {messages.some((message) => message.role === 'user') && (
+                  <button onClick={() => void retryLast()}>Retry</button>
+                )}
+                <button onClick={() => setSetupOpen(true)}>AI Settings</button>
+              </div>
             </div>
           )}
 
@@ -625,12 +876,12 @@ export function AssistantScreen({ isTab }: { isTab?: boolean } = {}) {
               }}
             />
             <button
-              className="assistant-send-button"
-              disabled={!input.trim() || busy}
-              onClick={() => void send()}
-              aria-label="Send message"
+              className={`assistant-send-button ${busy ? 'is-stop' : ''}`}
+              disabled={!busy && !input.trim()}
+              onClick={busy ? stopResponse : () => void send()}
+              aria-label={busy ? 'Stop response' : 'Send message'}
             >
-              ➔
+              {busy ? '■' : '➔'}
             </button>
           </div>
         </>

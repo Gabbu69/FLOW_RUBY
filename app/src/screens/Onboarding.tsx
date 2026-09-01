@@ -1488,7 +1488,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
         />
         <div className="ai-provider-grid">
           <OptionCard
-            option={{ id: 'gemini', icon: '✨', label: 'Google Gemini', detail: 'Gemini 2.5 Flash / Pro. Free & fast key from Google AI Studio.' }}
+            option={{ id: 'gemini', icon: '✨', label: 'Google Gemini', detail: 'Gemini 3.6 / 3.5 Flash. Fast key setup from Google AI Studio.' }}
             selected={provider === 'gemini'}
             onClick={() => chooseProvider('gemini')}
           />

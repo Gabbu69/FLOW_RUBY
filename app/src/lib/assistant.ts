@@ -59,22 +59,34 @@ export interface AssistantConfig {
 
 export type ApprovedAssistantContext = Record<string, unknown>
 
-export const DEFAULT_ANTHROPIC_MODEL = 'claude-opus-5'
+export const DEFAULT_ANTHROPIC_MODEL = 'claude-sonnet-5'
 export const DEFAULT_OPENAI_MODEL = 'gpt-5.6-terra'
-export const DEFAULT_GEMINI_MODEL = 'gemini-1.5-flash'
+export const DEFAULT_GEMINI_MODEL = 'gemini-3.6-flash'
 
 export const ANTHROPIC_MODELS = [
+  { id: 'claude-sonnet-5', label: 'Claude Sonnet 5 · balanced (Recommended)' },
+  { id: 'claude-fable-5', label: 'Claude Fable 5 · fast and capable' },
   { id: 'claude-opus-5', label: 'Claude Opus 5 · most capable' },
-  { id: 'claude-sonnet-5', label: 'Claude Sonnet 5 · balanced' },
-  { id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5 · fastest' },
+  { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5 · fastest' },
 ] as const
 
 export const GEMINI_MODELS = [
-  { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash · fastest & most stable (Recommended)' },
-  { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash · smart & modern' },
-  { id: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro · deep reasoning' },
-  { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+  { id: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash · balanced (Recommended)' },
+  { id: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash · smart and capable' },
+  { id: 'gemini-3.5-flash-lite', label: 'Gemini 3.5 Flash-Lite · fastest' },
+  { id: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro Preview · deeper reasoning' },
 ] as const
+
+export const OPENAI_MODELS = [
+  { id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra · balanced (Recommended)' },
+  { id: 'gpt-5.6-luna', label: 'GPT-5.6 Luna · fast and affordable' },
+  { id: 'gpt-5.6-sol', label: 'GPT-5.6 Sol · most capable' },
+] as const
+
+export interface StreamAssistantOptions {
+  signal?: AbortSignal
+  onDelta: (delta: string) => void
+}
 
 type FetchLike = typeof fetch
 
@@ -246,9 +258,9 @@ async function askGemini(
 
   const candidateModels = [
     config.model || DEFAULT_GEMINI_MODEL,
-    'gemini-1.5-flash',
-    'gemini-2.5-flash',
-    'gemini-1.5-pro',
+    'gemini-3.6-flash',
+    'gemini-3.5-flash',
+    'gemini-3.5-flash-lite',
   ].filter((val, index, self) => self.indexOf(val) === index)
 
   const contents = boundedHistory(history).map((msg) => ({
@@ -343,4 +355,266 @@ export async function askAssistant(
     return askGemini(config, history, approvedContext, fetchImpl)
   }
   return askOpenAI(config, history, approvedContext, fetchImpl)
+}
+
+interface SseEvent {
+  event: string
+  data: string
+}
+
+async function consumeSse(
+  response: Response,
+  onEvent: (event: SseEvent) => void,
+): Promise<void> {
+  if (!response.body) throw new Error('The provider returned an unreadable response stream.')
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  function drain(final = false) {
+    buffer = buffer.replace(/\r\n/g, '\n')
+    let boundary = buffer.indexOf('\n\n')
+    while (boundary >= 0) {
+      const block = buffer.slice(0, boundary)
+      buffer = buffer.slice(boundary + 2)
+      emit(block)
+      boundary = buffer.indexOf('\n\n')
+    }
+    if (final && buffer.trim()) {
+      emit(buffer)
+      buffer = ''
+    }
+  }
+
+  function emit(block: string) {
+    let event = 'message'
+    const data: string[] = []
+    for (const line of block.split('\n')) {
+      if (line.startsWith('event:')) event = line.slice(6).trim()
+      if (line.startsWith('data:')) data.push(line.slice(5).trimStart())
+    }
+    if (data.length) onEvent({ event, data: data.join('\n') })
+  }
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      drain()
+    }
+    buffer += decoder.decode()
+    drain(true)
+  } finally {
+    reader.releaseLock()
+  }
+}
+
+function appendDelta(delta: string, options: StreamAssistantOptions, current: string): string {
+  if (!delta) return current
+  options.onDelta(delta)
+  return current + delta
+}
+
+async function streamOpenAI(
+  config: AssistantConfig,
+  history: ChatMessage[],
+  approvedContext: ApprovedAssistantContext | undefined,
+  options: StreamAssistantOptions,
+  fetchImpl: FetchLike,
+): Promise<string> {
+  if (!config.apiKey?.trim()) throw new Error('Add an OpenAI API key before sending a message.')
+  const baseUrl = cleanBaseUrl(config.baseUrl || 'https://api.openai.com')
+  const response = await fetchImpl(`${baseUrl}/v1/responses`, {
+    method: 'POST',
+    headers: {
+      accept: 'text/event-stream',
+      'content-type': 'application/json',
+      authorization: `Bearer ${config.apiKey.trim()}`,
+    },
+    signal: options.signal,
+    body: JSON.stringify({
+      model: config.model || DEFAULT_OPENAI_MODEL,
+      instructions: contextInstructions(approvedContext),
+      input: boundedHistory(history),
+      reasoning: { effort: 'low' },
+      text: { verbosity: 'low' },
+      max_output_tokens: 1200,
+      store: false,
+      stream: true,
+    }),
+  })
+  if (!response.ok) {
+    await response.body?.cancel().catch(() => undefined)
+    throw apiError('openai', response.status)
+  }
+
+  let text = ''
+  await consumeSse(response, ({ data }) => {
+    if (data === '[DONE]') return
+    try {
+      const payload = JSON.parse(data) as { type?: string; delta?: unknown }
+      if (payload.type === 'response.output_text.delta' && typeof payload.delta === 'string') {
+        text = appendDelta(payload.delta, options, text)
+      }
+      if (payload.type === 'error') throw new Error('OpenAI stopped the response. Please try again.')
+    } catch (reason) {
+      if (reason instanceof SyntaxError) return
+      throw reason
+    }
+  })
+  if (!text.trim()) throw new Error('OpenAI returned no readable text.')
+  return text
+}
+
+async function streamAnthropic(
+  config: AssistantConfig,
+  history: ChatMessage[],
+  approvedContext: ApprovedAssistantContext | undefined,
+  options: StreamAssistantOptions,
+  fetchImpl: FetchLike,
+): Promise<string> {
+  const credential = config.apiKey?.trim()
+  if (!credential) throw new Error('Add an Anthropic key or CLI token before sending a message.')
+  const kind = anthropicCredentialKind(credential)
+  if (!kind) throw new Error('That does not look like an Anthropic credential (expected sk-ant-…).')
+  const headers: Record<string, string> = {
+    accept: 'text/event-stream',
+    'content-type': 'application/json',
+    'anthropic-version': '2023-06-01',
+    'anthropic-dangerous-direct-browser-access': 'true',
+  }
+  if (kind === 'cli-token') {
+    headers.authorization = `Bearer ${credential}`
+    headers['anthropic-beta'] = ANTHROPIC_OAUTH_BETA
+  } else {
+    headers['x-api-key'] = credential
+  }
+
+  const response = await fetchImpl('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers,
+    signal: options.signal,
+    body: JSON.stringify({
+      model: config.model || DEFAULT_ANTHROPIC_MODEL,
+      max_tokens: 1200,
+      system: contextInstructions(approvedContext),
+      messages: boundedHistory(history),
+      stream: true,
+    }),
+  })
+  if (!response.ok) {
+    await response.body?.cancel().catch(() => undefined)
+    throw apiError('anthropic', response.status)
+  }
+
+  let text = ''
+  await consumeSse(response, ({ data }) => {
+    if (data === '[DONE]') return
+    try {
+      const payload = JSON.parse(data) as {
+        type?: string
+        delta?: { type?: string; text?: unknown; stop_reason?: string }
+      }
+      if (payload.type === 'content_block_delta' && payload.delta?.type === 'text_delta' && typeof payload.delta.text === 'string') {
+        text = appendDelta(payload.delta.text, options, text)
+      }
+      if (payload.delta?.stop_reason === 'refusal') {
+        throw new Error('Anthropic’s safety system declined this request.')
+      }
+    } catch (reason) {
+      if (reason instanceof SyntaxError) return
+      throw reason
+    }
+  })
+  if (!text.trim()) throw new Error('Anthropic returned no readable text.')
+  return text
+}
+
+async function streamGemini(
+  config: AssistantConfig,
+  history: ChatMessage[],
+  approvedContext: ApprovedAssistantContext | undefined,
+  options: StreamAssistantOptions,
+  fetchImpl: FetchLike,
+): Promise<string> {
+  const apiKey = config.apiKey?.trim()
+  if (!apiKey) throw new Error('Add a Google Gemini API key before sending a message.')
+  const candidateModels = [
+    config.model || DEFAULT_GEMINI_MODEL,
+    'gemini-3.6-flash',
+    'gemini-3.5-flash',
+    'gemini-3.5-flash-lite',
+  ].filter((value, index, all) => all.indexOf(value) === index)
+  const contents = boundedHistory(history).map((message) => ({
+    role: message.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: message.content }],
+  }))
+
+  for (const [index, model] of candidateModels.entries()) {
+    const response = await fetchImpl(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`,
+      {
+        method: 'POST',
+        headers: { accept: 'text/event-stream', 'content-type': 'application/json' },
+        signal: options.signal,
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: contextInstructions(approvedContext) }] },
+          contents,
+          generationConfig: { maxOutputTokens: 1200, temperature: 0.7 },
+        }),
+      },
+    )
+    if (!response.ok) {
+      await response.body?.cancel().catch(() => undefined)
+      if (response.status === 404 && index < candidateModels.length - 1) continue
+      throw apiError('gemini', response.status)
+    }
+
+    let text = ''
+    await consumeSse(response, ({ data }) => {
+      if (data === '[DONE]') return
+      try {
+        const payload = JSON.parse(data) as {
+          candidates?: Array<{
+            finishReason?: string
+            content?: { parts?: Array<{ text?: unknown; thought?: boolean }> }
+          }>
+        }
+        const candidate = payload.candidates?.[0]
+        if (candidate?.finishReason === 'SAFETY') {
+          throw new Error('Google Gemini safety filters declined this request. Rephrasing may help.')
+        }
+        const delta = candidate?.content?.parts
+          ?.filter((part) => !part.thought && typeof part.text === 'string')
+          .map((part) => part.text as string)
+          .join('')
+        if (delta) text = appendDelta(delta, options, text)
+      } catch (reason) {
+        if (reason instanceof SyntaxError) return
+        throw reason
+      }
+    })
+    if (!text.trim()) throw new Error('Google Gemini returned no readable text.')
+    return text
+  }
+  throw new Error('Google Gemini could not find a supported text model for this API key.')
+}
+
+/** Stream a real provider response and surface each text delta to the chat UI. */
+export async function streamAssistant(
+  config: AssistantConfig,
+  history: ChatMessage[],
+  approvedContext: ApprovedAssistantContext | undefined,
+  options: StreamAssistantOptions,
+  fetchImpl: FetchLike = providerFetch,
+): Promise<string> {
+  if (history.length === 0) throw new Error('Write a message first.')
+  if (config.provider === 'anthropic') {
+    return streamAnthropic(config, history, approvedContext, options, fetchImpl)
+  }
+  if (config.provider === 'gemini') {
+    return streamGemini(config, history, approvedContext, options, fetchImpl)
+  }
+  return streamOpenAI(config, history, approvedContext, options, fetchImpl)
 }

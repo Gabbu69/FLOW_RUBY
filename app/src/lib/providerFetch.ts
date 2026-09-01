@@ -12,6 +12,7 @@ export async function providerFetch(
   init?: RequestInit,
 ): Promise<Response> {
   if (!Capacitor.isNativePlatform()) return fetch(input, init)
+  if (init?.signal?.aborted) throw new DOMException('The request was stopped.', 'AbortError')
 
   const url =
     typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url
@@ -37,14 +38,18 @@ export async function providerFetch(
       data,
       connectTimeout: 20_000,
       readTimeout: 90_000,
-      responseType: 'json',
+      responseType: headers.accept?.includes('text/event-stream') ? 'text' : 'json',
     })
+    if (init?.signal?.aborted) throw new DOMException('The request was stopped.', 'AbortError')
     const body = typeof response.data === 'string' ? response.data : JSON.stringify(response.data)
     return new Response(body, {
       status: response.status,
       headers: response.headers,
     })
-  } catch {
+  } catch (reason) {
+    if (init?.signal?.aborted || (reason instanceof DOMException && reason.name === 'AbortError')) {
+      throw new DOMException('The request was stopped.', 'AbortError')
+    }
     throw new Error('Could not reach the AI provider. Check your network connection.')
   }
 }
