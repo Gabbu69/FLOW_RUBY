@@ -681,6 +681,11 @@ export function Settings() {
   return (
     <div className="page">
       <h1>Settings</h1>
+      <p className="card" role="note">
+        Local-only evaluation. Automatic cloud sync is disabled. Your logs stay
+        in this browser or installation; export a file before clearing storage.
+        External AI and encrypted backup connections require your explicit setup.
+      </p>
       {status && (
         <div className="card" style={{ background: 'var(--rose-100)', fontSize: 14 }}>
           {status}

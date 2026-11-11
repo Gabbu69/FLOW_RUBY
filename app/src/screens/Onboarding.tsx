@@ -787,7 +787,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             <span className="ob-hero-label">Private, personal, and made with care</span>
           </div>
           <div>
-            <p className="eyebrow">Meet Ruby</p>
+            <p className="eyebrow">Meet Ruby · Local-only evaluation</p>
             <h1>Your cycle care, made a little cuter.</h1>
             <p className="lead">
               Track what matters, understand your patterns, and get gentle reminders without

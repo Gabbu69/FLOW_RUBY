@@ -2,7 +2,9 @@
 
 > **An open-source, mobile-first, privacy-respecting cycle, fertility, pregnancy, and perimenopause companion — styled in a delightful Hello Kitty aesthetic.**
 
-Ruby ships as a modern web application and native iOS/Android mobile app powered by Capacitor. It combines the speed and offline-first reliability of local IndexedDB with automatic cloud sync to **Supabase**, plus an integrated Bring-Your-Own-Key AI Health Companion supporting **Google Gemini**, **Anthropic Claude**, and **OpenAI**.
+**Current public evaluation: local-only.** Automatic Supabase sync is disabled even when old environment credentials are present. Core records remain in IndexedDB. Explicit external AI and encrypted-backup connections remain optional. Apply the database lockdown described below when upgrading an existing hosted instance.
+
+Ruby ships as a modern web application and native iOS/Android mobile app powered by Capacitor. It combines the speed and offline-first reliability of local IndexedDB with local-only storage, plus an integrated Bring-Your-Own-Key AI Health Companion supporting **Google Gemini**, **Anthropic Claude**, and **OpenAI**.
 
 ---
 
@@ -10,7 +12,7 @@ Ruby ships as a modern web application and native iOS/Android mobile app powered
 
 - 🎀 **Delightful Hello Kitty Aesthetic**: Custom SVG red bow motifs, sweet pastel pinks, bubbly cards, 3D candy buttons, rounded typography (`Quicksand` & `Nunito`), and cute micro-interactions.
 - 🔒 **Privacy First & Zero-Tracking**: Core logs live on your device in Dexie (IndexedDB). No analytics trackers, no third-party ads, no paywalls.
-- ☁️ **Supabase Cloud Sync**: Transparent background syncing that mirrors every write into your cloud database without compromising offline capability.
+- 🔒 **Local-only evaluation**: no automatic cloud reads or writes. Existing Supabase credentials cannot enable the legacy shared sync model.
 - 💊 **Daily Pill Tracker**: Save a birth-control pill schedule, record taken or missed doses, review a seven-day streak, and receive private due/missed check-in alerts.
 - ✨ **AI Health Companion**: Powered by **Google Gemini 2.5 Flash / Pro**, **Claude Opus / Sonnet**, or **OpenAI GPT-5**, with granular consent controls over which health categories travel with each message.
 - 📱 **Mobile-First & Native Ready**: Responsive touch controls, iOS/Android safe area support, haptic feedback, and local notifications.
@@ -62,22 +64,28 @@ Open **[http://localhost:5173/](http://localhost:5173/)** in your browser.
 
 ---
 
-## ☁️ Supabase Cloud Database Setup
+## Cloud sync and upgrade boundary
 
-To enable real-time cloud sync for your Ruby instance:
+Automatic Supabase sync is disabled in this release. There is no environment-variable override.
+The legacy sync functions return without sending requests because no client is created.
 
-1. Create a project at [Supabase](https://supabase.com/).
-2. In your **Supabase Dashboard → SQL Editor**, run [`app/supabase-migration.sql`](app/supabase-migration.sql).
-3. Create an `app/.env` file with your credentials:
-   ```env
-   VITE_SUPABASE_URL=https://your-project.supabase.co
-   VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
-   ```
-4. All daily logs, cycle data, bookmarks, and health profiles will automatically sync both ways.
+For an existing cloud database, run `app/supabase-migration.sql` with an authorized
+administrator. It preserves the records, enables RLS, and revokes browser-role
+access to the legacy shared tables. Deploying frontend files alone does not
+apply database permissions or remove data already stored in the cloud.
 
-The SQL file is safe to run again on an existing Ruby database. Re-run it after upgrading to add the pill tables and repair the regimen columns used by the sync client.
+Future cloud sync needs authenticated users, owner identifiers and owner-scoped
+primary keys/policies, migration of existing records to the correct owner, and
+cross-user denial tests. Do not re-enable the old shared client.
 
-> **Deployment note:** the included schema matches the project's existing single-tenant, publishable-key sync model. Do not point a public multi-user deployment at one shared database until Supabase Auth and owner-scoped RLS policies are added. Local IndexedDB persistence works without Supabase.
+## Public walkthrough
+
+Use fictional values: finish onboarding, add a daily log, reopen the page and
+check history, export a file from Settings, then delete device data from Settings.
+Core logs remain local. File export contains sensitive personal information;
+choose encrypted export for a private backup. External AI or backup relays are
+separate, user-configured connections. This walkthrough does not verify a phone,
+cloud migration, or medical accuracy.
 
 ---
 
