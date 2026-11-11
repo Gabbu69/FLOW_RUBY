@@ -5,7 +5,6 @@ import { StartupErrorBoundary } from './components/StartupErrorBoundary'
 import { initializeNativeRuntime } from './native/runtime'
 import { Onboarding } from './screens/Onboarding'
 import { Today } from './screens/Today'
-import { installSyncHooks, pullFromSupabase, pushAllToSupabase } from './db/supabaseSync'
 import './styles/base.css'
 import './styles/app.css'
 import './styles/health-import.css'
@@ -22,15 +21,7 @@ if ('serviceWorker' in navigator) {
 
 void initializeNativeRuntime()
 
-// Install Supabase sync hooks so every Dexie write propagates to the cloud
-installSyncHooks()
-
-// Hydrate local DB from Supabase on startup (only fills empty tables)
-void pullFromSupabase()
-  .then(() => pushAllToSupabase())
-  .catch((err: unknown) => {
-    console.warn('[Ruby] Initial cloud sync failed — continuing offline', err)
-  })
+// Public evaluation: never hydrate from or write to a shared cloud database.
 
 const onboardingPreview =
   import.meta.env.DEV &&

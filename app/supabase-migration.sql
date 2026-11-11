@@ -144,15 +144,26 @@ CREATE INDEX IF NOT EXISTS idx_pill_dose_status_date
   ON pill_dose_logs (status, date DESC);
 
 -- ============================================================
--- Enable Row Level Security (optional — uncomment if needed)
--- For now, public access via the publishable key is allowed.
--- ============================================================
--- ALTER TABLE daily_logs ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE cycles ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE content_bookmarks ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE health_profiles ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE regimen_records ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE missed_dose_events ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE pill_schedules ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE pill_dose_logs ENABLE ROW LEVEL SECURITY;
+-- Public evaluation builds are local-only. Existing records are retained,
+-- but browser roles cannot access this legacy shared schema.
+-- Apply this file to an existing database as well as deploying the app.
+-- Owner-scoped cloud sync requires a separate authenticated migration.
+-- https://supabase.com/docs/guides/database/postgres/row-level-security
+ALTER TABLE public.daily_logs ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.daily_logs FROM anon, authenticated;
+ALTER TABLE public.cycles ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.cycles FROM anon, authenticated;
+ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.settings FROM anon, authenticated;
+ALTER TABLE public.content_bookmarks ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.content_bookmarks FROM anon, authenticated;
+ALTER TABLE public.health_profiles ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.health_profiles FROM anon, authenticated;
+ALTER TABLE public.regimen_records ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.regimen_records FROM anon, authenticated;
+ALTER TABLE public.missed_dose_events ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.missed_dose_events FROM anon, authenticated;
+ALTER TABLE public.pill_schedules ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.pill_schedules FROM anon, authenticated;
+ALTER TABLE public.pill_dose_logs ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.pill_dose_logs FROM anon, authenticated;
